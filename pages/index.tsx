@@ -7,7 +7,7 @@ import Footer from "components/Footer/Footer";
 
 const Home = () => {
   return (
-    <main className="background">
+    <main id="main-content" className="background">
       <Head />
       <h1 className="text-4xl font-bold mb-8 text-center">
         Prepare the playlist for your next gig!

@@ -38,7 +38,7 @@ const Home = () => {
     }
   }, [isReady]);
   return (
-    <main className="background">
+    <main id="main-content" className="background">
       <Head />
       {query.error ? (
         <div className="flex flex-col items-center">

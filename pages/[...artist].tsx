@@ -20,6 +20,7 @@ const ResultPage = () => {
 
   return (
     <main
+      id="main-content"
       className={classNames({
         background: showAlternate,
       })}
