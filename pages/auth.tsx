@@ -8,19 +8,18 @@ import Link from "next/link";
 import { ArrowLeft, Frown } from "lucide-react";
 import Head from "components/Head/Head";
 
-export const auth = () => {
-  const hash = window.location.hash
-    .substring(1)
-    .split("&")
-    .reduce((initial, item) => {
-      if (item) {
-        const parts = item.split("=") as [keyof AuthUser, string];
-        initial[parts[0]] = decodeURIComponent(parts[1]);
-      }
-      return initial;
-    }, {} as AuthUser);
+const AUTH_KEYS: Array<keyof AuthUser> = ["access_token", "expires_on"];
+
+export const auth = (): AuthUser => {
+  const params = new URLSearchParams(window.location.hash.substring(1));
   window.location.hash = "";
-  return hash;
+  return AUTH_KEYS.reduce((acc, key) => {
+    const value = params.get(key);
+    if (value) {
+      acc[key] = value;
+    }
+    return acc;
+  }, {} as AuthUser);
 };
 
 const Home = () => {
