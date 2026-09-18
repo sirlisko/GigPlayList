@@ -52,7 +52,7 @@ export const AuthProvider = ({ children }: Props): ReactElement => {
           setUser(auth);
         }
       }
-    } catch (e: any) {
+    } catch {
       localStorage.removeItem("spotAuth");
     }
   }, []);

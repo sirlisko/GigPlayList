@@ -63,7 +63,7 @@ const Home = () => {
           </Link>
         </div>
       ) : (
-        <div className="m-auto text-center text-2xl p-3" aria-label="lo">
+        <div className="m-auto text-center text-2xl p-3">
           <Loader height={80} width={80} ariaLabel="loading" color="white" />
         </div>
       )}

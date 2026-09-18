@@ -2,7 +2,7 @@ import { getArtistSetlist } from "server/apis/setlistFm";
 import { getAggregatedSetlists } from "server/setlists";
 
 import type { NextApiRequest, NextApiResponse } from "next";
-import { HttpStatusCode } from "axios";
+import axios, { HttpStatusCode } from "axios";
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
   const { artistName, artistId } = req.query as {
@@ -15,9 +15,12 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const setList = await getArtistSetlist(artistName, artistId);
     res.status(HttpStatusCode.Ok).json(getAggregatedSetlists(setList));
-  } catch (e: any) {
+  } catch (e) {
+    const upstream = axios.isAxiosError<{ code?: number; message?: string }>(e)
+      ? e.response?.data
+      : undefined;
     res
-      .status(e?.response?.data?.code ?? HttpStatusCode.InternalServerError)
-      .end(e?.response?.data?.message || "Ops! There was a problem!");
+      .status(upstream?.code ?? HttpStatusCode.InternalServerError)
+      .end(upstream?.message || "Ops! There was a problem!");
   }
 };

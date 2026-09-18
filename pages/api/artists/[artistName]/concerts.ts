@@ -1,4 +1,4 @@
-import { HttpStatusCode } from "axios";
+import axios, { HttpStatusCode } from "axios";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getClientIp } from "request-ip";
 
@@ -21,9 +21,12 @@ export default async (req: NextApiRequest, res: NextApiResponse<Event[]>) => {
   try {
     const events = await getArtistEvent(artistName, clientIp);
     res.status(HttpStatusCode.Ok).json(events);
-  } catch (e: any) {
+  } catch (e) {
+    const upstream = axios.isAxiosError<{ code?: number; message?: string }>(e)
+      ? e.response?.data
+      : undefined;
     res
-      .status(e?.response?.data?.code ?? HttpStatusCode.InternalServerError)
-      .end(e?.response?.data?.message || "Ops! There was a problem!");
+      .status(upstream?.code ?? HttpStatusCode.InternalServerError)
+      .end(upstream?.message || "Ops! There was a problem!");
   }
 };
