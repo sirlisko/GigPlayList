@@ -32,7 +32,7 @@ const ResultPage = () => {
       ) : (
         <Result artistQuery={artist} />
       )}
-      {!isLoading && (
+      {!showAlternate && (
         <Footer
           showCredits
           className={classNames("text-white", {
