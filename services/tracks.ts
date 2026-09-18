@@ -3,7 +3,7 @@ import { SetList } from "types";
 import { fetcher } from "utils/api";
 
 export const useTracks = (artistName?: string, artistId?: string) => {
-  const { data, error, isLoading } = useSWR(
+  const { data, error, isLoading, mutate } = useSWR(
     artistId
       ? `/api/tracks?artistId=${artistId}`
       : artistName
@@ -21,5 +21,6 @@ export const useTracks = (artistName?: string, artistId?: string) => {
     data,
     isLoading,
     isError: error,
+    retry: mutate,
   };
 };

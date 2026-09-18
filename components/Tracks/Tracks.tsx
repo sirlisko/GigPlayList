@@ -56,10 +56,13 @@ const Tracks = ({ tracks, links, palette }: TracksProps) => {
     setTimeout(() => setLoaded(true), 1);
   }, []);
 
+  const vibrantRgb = palette?.Vibrant?.rgb ?? [255, 255, 255];
+  const darkVibrantRgb = palette?.DarkVibrant?.rgb ?? [0, 0, 0];
+
   const getGradientStyle = (count: number, maxCount: number) => {
     const intensity = (count / maxCount) * 100;
     return {
-      background: `linear-gradient(90deg, rgba(${palette?.Vibrant.rgb?.join(",")},${intensity / 100}) 0%, rgba(0,0,0,0) 100%)`,
+      background: `linear-gradient(90deg, rgba(${vibrantRgb.join(",")},${intensity / 100}) 0%, rgba(0,0,0,0) 100%)`,
       transition: "all 1s ease-out",
       opacity: loaded ? 1 : 0,
       transform: `translateX(${loaded ? "0" : "-20px"})`,
@@ -67,7 +70,7 @@ const Tracks = ({ tracks, links, palette }: TracksProps) => {
   };
 
   const customStyle = {
-    "--custom-bg-color": `rgba(${palette?.DarkVibrant.rgb.join(",")}, 1)`,
+    "--custom-bg-color": `rgba(${darkVibrantRgb.join(",")}, 1)`,
   } as React.CSSProperties;
 
   return (
@@ -95,7 +98,7 @@ const Tracks = ({ tracks, links, palette }: TracksProps) => {
                   <div
                     className="w-12 flex items-center justify-center rounded h-full"
                     style={{
-                      background: `rgba(${palette?.Vibrant.rgb.join(",")}, 255)`,
+                      background: `rgba(${vibrantRgb.join(",")}, 255)`,
                     }}
                   >
                     <Disc size={24} className="text-gray-500" />{" "}
@@ -116,13 +119,9 @@ const Tracks = ({ tracks, links, palette }: TracksProps) => {
                   style={{ ...customStyle, opacity: isPlaying ? 1 : undefined }}
                 >
                   {isPlaying ? (
-                    <PauseIcon
-                      stroke={`rgb(${palette?.DarkVibrant.rgb.join(",")}`}
-                    />
+                    <PauseIcon stroke={`rgb(${darkVibrantRgb.join(",")}`} />
                   ) : (
-                    <PlayIcon
-                      stroke={`rgb(${palette?.DarkVibrant.rgb.join(",")}`}
-                    />
+                    <PlayIcon stroke={`rgb(${darkVibrantRgb.join(",")}`} />
                   )}
                 </button>
               )}

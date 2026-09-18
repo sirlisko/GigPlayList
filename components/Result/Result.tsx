@@ -24,17 +24,23 @@ interface Props {
 
 const Result = ({ artistQuery }: Props) => {
   const [initialBaground] = useState<string>(document.body.style.background);
-  const { artistData, isLoading: isLoadingArtist } = useArtistData(
-    artistQuery[0],
-  );
-  const { data, isLoading: isLoadingTracks } = useTracks(
-    artistQuery[0],
-    artistQuery[1],
-  );
+  const {
+    artistData,
+    isLoading: isLoadingArtist,
+    isError: isErrorArtist,
+    retry: retryArtist,
+  } = useArtistData(artistQuery[0]);
+  const {
+    data,
+    isLoading: isLoadingTracks,
+    isError: isErrorTracks,
+    retry: retryTracks,
+  } = useTracks(artistQuery[0], artistQuery[1]);
   const { artist } = useGetArtist(artistQuery?.[1]);
   const { events } = useEvents(artistQuery[0]);
 
-  const from = `rgba(${artistData?.palette?.DarkVibrant.rgb.join(",")},100)`;
+  const darkVibrantRgb = artistData?.palette?.DarkVibrant?.rgb ?? [0, 0, 0];
+  const from = `rgba(${darkVibrantRgb.join(",")},100)`;
 
   useEffect(() => {
     return () => {
@@ -49,6 +55,8 @@ const Result = ({ artistQuery }: Props) => {
   if (isLoadingArtist || isLoadingTracks) {
     return null;
   }
+
+  const isErrorState = isErrorArtist || isErrorTracks;
 
   const isArtistiWithTrack =
     data?.tracks && data.tracks.length > 0 && artistData;
@@ -164,6 +172,24 @@ const Result = ({ artistQuery }: Props) => {
               palette={artistData?.palette}
             />
           </>
+        ) : isErrorState ? (
+          <div className="flex flex-col">
+            <div className="m-auto text-center text-2xl p-3">
+              <TriangleAlert height={100} width={100} />
+            </div>
+            <div className="w-full break-words m-auto text-center text-2xl p-3">
+              Something went wrong loading <b>{artistQuery[0]}</b>
+            </div>
+            <button
+              className="mt-2 mx-auto px-6 py-2 rounded-full bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
+              onClick={() => {
+                retryArtist?.();
+                retryTracks?.();
+              }}
+            >
+              Try again
+            </button>
+          </div>
         ) : (
           <div className="flex flex-col">
             <div className="m-auto text-center text-2xl p-3">
