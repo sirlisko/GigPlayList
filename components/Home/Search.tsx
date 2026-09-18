@@ -123,6 +123,13 @@ const Search = () => {
           value={searchTerm}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={isOpen}
+          aria-controls="search-suggestions"
+          aria-activedescendant={
+            selectedIndex >= 0 ? `suggestion-${selectedIndex}` : undefined
+          }
           className="w-full py-3 px-4 pr-12 rounded-full bg-white bg-opacity-20 backdrop-blur-md text-white placeholder-white placeholder-opacity-75 focus:outline-none focus:ring-2 focus:ring-white text-lg"
         />
         {searchTerm && (
@@ -143,10 +150,17 @@ const Search = () => {
         </button>
       </div>
       {isOpen && suggestions.length > 0 && (
-        <ul className="absolute z-10 w-full mt-1 bg-opacity-95 backdrop-blur-md rounded-2xl shadow-lg overflow-hidden border">
+        <ul
+          id="search-suggestions"
+          role="listbox"
+          className="absolute z-10 w-full mt-1 bg-opacity-95 backdrop-blur-md rounded-2xl shadow-lg overflow-hidden border"
+        >
           {suggestions.map((suggestion, index) => (
             <li
               key={index}
+              id={`suggestion-${index}`}
+              role="option"
+              aria-selected={index === selectedIndex}
               className={`px-6 py-3 cursor-pointer transition-colors duration-150 ease-in-out ${
                 index === selectedIndex
                   ? "bg-blue-100 text-blue-500"

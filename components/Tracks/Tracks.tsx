@@ -75,6 +75,11 @@ const Tracks = ({ tracks, links, palette }: TracksProps) => {
 
   return (
     <ul role="list" className="space-y-2">
+      {currentTrack && (
+        <li aria-live="polite" className="text-sm opacity-75 px-3">
+          Now playing: {currentTrack}
+        </li>
+      )}
       {tracks.map(({ count, title, cover }) => {
         const link = links?.find((link) => isSameSong(link.title, title));
         const isPlaying = currentTrack === title;

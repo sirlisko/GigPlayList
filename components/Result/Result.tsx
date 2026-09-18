@@ -131,7 +131,7 @@ const Result = ({ artistQuery }: Props) => {
             {songs && songs.length > 0 ? (
               <>
                 <div className="bg-black bg-opacity-30 rounded-lg p-4 mb-6">
-                  <p>
+                  <p className="mb-3">
                     Generated from <strong>{data.totalTracks} songs</strong>{" "}
                     across <strong>{data.totalSetLists} recent concerts</strong>{" "}
                     (
@@ -146,21 +146,24 @@ const Result = ({ artistQuery }: Props) => {
                     })}
                     )
                   </p>
-                  <p className="mt-2">
-                    <strong>Average songs per concert</strong>:{" "}
-                    {Math.round(data.totalTracks / data.totalSetLists)}
-                  </p>
-                  <p>{encoreLabel ? <p>{encoreLabel}</p> : null}</p>
-                  <p className="mt-2">
-                    <strong>{songs.length}</strong> most likely songs to be
-                    played, based on performance frequency
-                  </p>
-
-                  {playlistDuration ? (
-                    <p>
-                      Estimated playtime: <strong>{playlistDuration}</strong>
-                    </p>
-                  ) : null}
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <strong className="block">Avg songs/concert</strong>
+                      {Math.round(data.totalTracks / data.totalSetLists)}
+                    </div>
+                    <div>
+                      <strong className="block">Likely songs</strong>
+                      {songs.length}
+                    </div>
+                    {encoreLabel ? (
+                      <div className="col-span-2">{encoreLabel}</div>
+                    ) : null}
+                    {playlistDuration ? (
+                      <div className="col-span-2">
+                        <strong>Estimated playtime</strong>: {playlistDuration}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
                 <SavePlaylist artistData={artistData} songs={songs} />
               </>
@@ -173,15 +176,15 @@ const Result = ({ artistQuery }: Props) => {
             />
           </>
         ) : isErrorState ? (
-          <div className="flex flex-col">
+          <div className="flex flex-col items-center">
             <div className="m-auto text-center text-2xl p-3">
               <TriangleAlert height={100} width={100} />
             </div>
-            <div className="w-full break-words m-auto text-center text-2xl p-3">
+            <div className="w-full break-words text-center text-2xl p-3">
               Something went wrong loading <b>{artistQuery[0]}</b>
             </div>
             <button
-              className="mt-2 mx-auto px-6 py-2 rounded-full bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
+              className="mt-2 px-6 py-2 rounded-full bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
               onClick={() => {
                 retryArtist?.();
                 retryTracks?.();
@@ -189,15 +192,27 @@ const Result = ({ artistQuery }: Props) => {
             >
               Try again
             </button>
+            <Link
+              href="/"
+              className="mt-4 text-sm underline opacity-75 hover:opacity-100"
+            >
+              Search another artist
+            </Link>
           </div>
         ) : (
-          <div className="flex flex-col">
+          <div className="flex flex-col items-center">
             <div className="m-auto text-center text-2xl p-3">
               <Frown height={100} width={100} />
             </div>
-            <div className="w-full break-words m-auto text-center text-2xl p-3">
+            <div className="w-full break-words text-center text-2xl p-3">
               No setlists found for <b>{artistQuery[0]}</b>
             </div>
+            <Link
+              href="/"
+              className="mt-2 text-sm underline opacity-75 hover:opacity-100"
+            >
+              Search another artist
+            </Link>
           </div>
         )}
       </div>
