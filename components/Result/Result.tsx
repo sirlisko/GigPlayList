@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Frown, TriangleAlert } from "lucide-react";
 
@@ -52,6 +52,19 @@ const Result = ({ artistQuery }: Props) => {
     document.body.style.background = from;
   }, [from]);
 
+  const songs = useMemo(
+    () =>
+      artistData?.tracks && data?.tracks
+        ? matchSongs(data.tracks, artistData.tracks)
+        : [],
+    [artistData?.tracks, data?.tracks],
+  );
+
+  const playlistDuration = useMemo(
+    () => calculatePlaylistDuration(songs),
+    [songs],
+  );
+
   if (isLoadingArtist || isLoadingTracks) {
     return null;
   }
@@ -61,12 +74,8 @@ const Result = ({ artistQuery }: Props) => {
   const isArtistiWithTrack =
     data?.tracks && data.tracks.length > 0 && artistData;
 
-  const songs =
-    artistData?.tracks && data?.tracks
-      ? matchSongs(data.tracks, artistData.tracks)
-      : [];
+  const unmatchedCount = (data?.tracks.length ?? 0) - songs.length;
 
-  const playlistDuration = calculatePlaylistDuration(songs);
   const encoreLabel = data && generateEncoreLabel(data);
 
   return (
@@ -161,6 +170,13 @@ const Result = ({ artistQuery }: Props) => {
                     {playlistDuration ? (
                       <div className="col-span-2">
                         <strong>Estimated playtime</strong>: {playlistDuration}
+                      </div>
+                    ) : null}
+                    {unmatchedCount > 0 ? (
+                      <div className="col-span-2 text-xs opacity-60">
+                        {unmatchedCount} setlist song
+                        {unmatchedCount === 1 ? "" : "s"} couldn&apos;t be
+                        matched on Spotify.
                       </div>
                     ) : null}
                   </div>
