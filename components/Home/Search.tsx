@@ -17,11 +17,15 @@ const Search = () => {
   const [isOpen, setIsOpen] = useState(false);
   const search = useRef<HTMLInputElement>(null);
   const wrapperRef = useRef<HTMLFormElement>(null);
+  const suppressAutoOpen = useRef(false);
   const router = useRouter();
 
   const { data } = useSearchArtistByName(searchTerm);
 
   useEffect(() => {
+    if (suppressAutoOpen.current) {
+      return;
+    }
     if (data && searchTerm.length > 1) {
       const newSuggestions = data.artists.slice(0, 5);
       setSuggestions(newSuggestions);
@@ -59,12 +63,15 @@ const Search = () => {
   };
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    suppressAutoOpen.current = false;
     setSearchTerm(event.target.value);
   };
 
   const handleSuggestionSelect = (suggestion: ArtistInfo) => {
+    suppressAutoOpen.current = true;
     setSearchTerm(suggestion.name);
     setIsOpen(false);
+    setSuggestions([]);
     router.push("/[...artist]", `/${suggestion.name}/${suggestion.id}`);
   };
 

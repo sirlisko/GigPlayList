@@ -27,6 +27,7 @@ const HeadSection = () => (
         content="GigPlayList curates playlists for upcoming gigs based on setlists and artist data."
       />
       <meta property="og:url" content="https://gigplaylist.sirlisko.com" />
+      <meta property="og:type" content="website" />
       <meta
         property="og:description"
         content="GigPlayList curates playlists for upcoming gigs based on setlists and artist data."
@@ -34,6 +35,25 @@ const HeadSection = () => (
       <meta
         property="og:title"
         content="GigPlayList - Prepare the playlist for your next gig!"
+      />
+      <meta
+        property="og:image"
+        content="https://gigplaylist.sirlisko.com/web-app-manifest-512x512.png"
+      />
+      <meta property="og:image:width" content="512" />
+      <meta property="og:image:height" content="512" />
+      <meta name="twitter:card" content="summary" />
+      <meta
+        name="twitter:title"
+        content="GigPlayList - Prepare the playlist for your next gig!"
+      />
+      <meta
+        name="twitter:description"
+        content="GigPlayList curates playlists for upcoming gigs based on setlists and artist data."
+      />
+      <meta
+        name="twitter:image"
+        content="https://gigplaylist.sirlisko.com/web-app-manifest-512x512.png"
       />
     </Head>
     <Favicons />
