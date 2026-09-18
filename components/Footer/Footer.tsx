@@ -29,7 +29,16 @@ const Footer = ({ className, showCredits }: FooterProps) => (
       {showCredits && (
         <span>
           {" "}
-          Thanks to <a href="https://setlist.fm">setlist.fm</a> API.
+          Thanks to{" "}
+          <a
+            className="underline"
+            href="https://setlist.fm"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            setlist.fm
+          </a>{" "}
+          API.
         </span>
       )}{" "}
       <span className="block sm:inline">
