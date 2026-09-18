@@ -24,9 +24,15 @@ const chunk = <T,>(items: T[], size: number): T[][] => {
 const isUnauthorized = (e: unknown) =>
   typeof e === "object" && e !== null && "status" in e && e.status === 401;
 
+const createdSessionKey = (name: string) => `gigplaylist:created:${name}`;
+
 const SavePlaylist = ({ artistData: { name }, songs }: SavePlaylistProps) => {
   const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState(false);
+  const [done, setDone] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      sessionStorage.getItem(createdSessionKey(name)) === "true",
+  );
   const [error, setError] = useState<string | null>(null);
   const { user, logout } = useAuth();
   const createPlaylist = () => {
@@ -50,7 +56,10 @@ const SavePlaylist = ({ artistData: { name }, songs }: SavePlaylistProps) => {
             Promise.resolve(),
           ),
         )
-        .then(() => setDone(true))
+        .then(() => {
+          sessionStorage.setItem(createdSessionKey(name), "true");
+          setDone(true);
+        })
         .catch((e) => {
           if (isUnauthorized(e)) {
             logout?.();
