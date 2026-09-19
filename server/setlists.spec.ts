@@ -48,6 +48,8 @@ const fakeData: Setlists = {
 describe("setlists util", () => {
   describe("getAggregatedSetlists", () => {
     it("should return nomalized and aggregated data", () => {
+      const d1 = { date: "2000-01-01", venue: undefined };
+      const d1999 = { date: "1999-09-09", venue: undefined };
       expect(getAggregatedSetlists(fakeData)).toStrictEqual({
         encores: { "1": 2, "2": 1 },
         from: "2000-01-01",
@@ -55,10 +57,34 @@ describe("setlists util", () => {
         totalSetLists: 3,
         totalTracks: 8,
         tracks: [
-          { title: "bar", count: 3, cover: "coverBand" },
-          { title: "foo", count: 2, cover: undefined },
-          { title: "foobar", count: 2, cover: undefined },
-          { title: "barfoo", count: 1, cover: undefined },
+          {
+            title: "bar",
+            count: 3,
+            cover: "coverBand",
+            isEncore: true,
+            shows: [d1, d1999, d1],
+          },
+          {
+            title: "foo",
+            count: 2,
+            cover: undefined,
+            isEncore: true,
+            shows: [d1, d1],
+          },
+          {
+            title: "foobar",
+            count: 2,
+            cover: undefined,
+            isEncore: true,
+            shows: [d1, d1],
+          },
+          {
+            title: "barfoo",
+            count: 1,
+            cover: undefined,
+            isEncore: true,
+            shows: [d1],
+          },
         ],
       });
     });
@@ -78,7 +104,15 @@ describe("setlists util", () => {
         to: "1999-09-09",
         totalSetLists: 1,
         totalTracks: 1,
-        tracks: [{ title: "bar", count: 1, cover: undefined }],
+        tracks: [
+          {
+            title: "bar",
+            count: 1,
+            cover: undefined,
+            isEncore: false,
+            shows: [{ date: "1999-09-09", venue: undefined }],
+          },
+        ],
       });
     });
 
@@ -94,6 +128,40 @@ describe("setlists util", () => {
         from: null,
         encores: null,
       });
+    });
+
+    it("should format venue and mark encore-only songs", () => {
+      const fakeSetWithVenue: Setlists = {
+        setlist: [
+          {
+            eventDate: "2001-05-05",
+            venue: { name: "The Forum", city: { name: "Inglewood" } },
+            sets: {
+              set: [
+                { song: [{ name: "opener" }] },
+                { "@encore": "1", song: [{ name: "closer" }] },
+              ],
+            },
+          },
+        ],
+      };
+      const result = getAggregatedSetlists(fakeSetWithVenue);
+      expect(result.tracks).toStrictEqual([
+        {
+          title: "opener",
+          count: 1,
+          cover: undefined,
+          isEncore: false,
+          shows: [{ date: "2001-05-05", venue: "The Forum, Inglewood" }],
+        },
+        {
+          title: "closer",
+          count: 1,
+          cover: undefined,
+          isEncore: true,
+          shows: [{ date: "2001-05-05", venue: "The Forum, Inglewood" }],
+        },
+      ]);
     });
   });
 });
