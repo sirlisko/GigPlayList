@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 
-import { Track, Link, ArtistData } from "types";
+import { Track, Link, ArtistData, Show } from "types";
 import { isSameSong } from "utils/matchSongs";
+import { sanitiseDate } from "utils/labels";
 
-import { Disc3 as Disc } from "lucide-react";
+import { Disc3 as Disc, X } from "lucide-react";
 import SpotifyLogo from "components/Icons/Spotify";
 import PauseIcon from "components/Icons/Pause";
 import PlayIcon from "components/Icons/Play";
@@ -19,7 +20,24 @@ const Tracks = ({ tracks, links, palette }: TracksProps) => {
   const [loaded, setLoaded] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<string | null>(null);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+  const [selectedTrack, setSelectedTrack] = useState<{
+    title: string;
+    shows: Show[];
+  } | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    if (!selectedTrack) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelectedTrack(null);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedTrack]);
 
   const handlePreview = (audioUrl: string | undefined, title: string) => {
     if (!audioUrl) return;
@@ -80,7 +98,7 @@ const Tracks = ({ tracks, links, palette }: TracksProps) => {
           Now playing: {currentTrack}
         </li>
       )}
-      {tracks.map(({ count, title, cover }) => {
+      {tracks.map(({ count, title, cover, isEncore, shows }) => {
         const link = links?.find((link) => isSameSong(link.title, title));
         const isPlaying = currentTrack === title;
         return (
@@ -137,6 +155,9 @@ const Tracks = ({ tracks, links, palette }: TracksProps) => {
                     (cover of <span className="italic">{cover}</span>)
                   </span>
                 )}
+                {isEncore && (
+                  <span className="md:ml-1 text-sm opacity-75">(encore)</span>
+                )}
               </div>
             </div>
             <div className="flex items-center space-x-2">
@@ -145,14 +166,63 @@ const Tracks = ({ tracks, links, palette }: TracksProps) => {
                   <SpotifyLogo />
                 </a>
               )}
-              <div className="text-sm opacity-75">
-                <span className="hidden md:inline">Played </span>
-                <span className="whitespace-nowrap">{count} times</span>
-              </div>
+              {shows.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setSelectedTrack({ title, shows })}
+                  className="text-sm opacity-75 hover:opacity-100 underline decoration-dotted underline-offset-2"
+                >
+                  <span className="hidden md:inline">Played </span>
+                  <span className="whitespace-nowrap">{count} times</span>
+                </button>
+              ) : (
+                <div className="text-sm opacity-75">
+                  <span className="hidden md:inline">Played </span>
+                  <span className="whitespace-nowrap">{count} times</span>
+                </div>
+              )}
             </div>
           </li>
         );
       })}
+      {selectedTrack && (
+        <li
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Shows where "${selectedTrack.title}" was played`}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setSelectedTrack(null)}
+        >
+          <div
+            className="w-full max-w-sm max-h-[80vh] overflow-y-auto rounded-lg bg-neutral-900 p-4 text-white"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-medium">{selectedTrack.title}</h2>
+              <button
+                type="button"
+                onClick={() => setSelectedTrack(null)}
+                aria-label="Close"
+                className="opacity-75 hover:opacity-100"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <ul className="space-y-1 text-sm opacity-90">
+              {selectedTrack.shows.map(({ date, venue }, index) => (
+                <li key={index}>
+                  {sanitiseDate(date)?.toLocaleDateString(undefined, {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })}
+                  {venue ? ` — ${venue}` : ""}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </li>
+      )}
     </ul>
   );
 };

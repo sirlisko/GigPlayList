@@ -5,10 +5,17 @@ export interface Event {
   buyUrl: string;
 }
 
+export interface Show {
+  date: string;
+  venue?: string;
+}
+
 export interface Track {
   title: string;
   cover?: string;
   count: number;
+  isEncore: boolean;
+  shows: Show[];
 }
 
 export interface SetList {

@@ -24,6 +24,8 @@ interface Props {
 
 const Result = ({ artistQuery }: Props) => {
   const [initialBaground] = useState<string>(document.body.style.background);
+  const [hideCovers, setHideCovers] = useState(false);
+  const [hideEncores, setHideEncores] = useState(false);
   const {
     artistData,
     isLoading: isLoadingArtist,
@@ -52,12 +54,21 @@ const Result = ({ artistQuery }: Props) => {
     document.body.style.background = from;
   }, [from]);
 
+  const filteredTracks = useMemo(
+    () =>
+      data?.tracks.filter(
+        (track) =>
+          (!hideCovers || !track.cover) && (!hideEncores || !track.isEncore),
+      ) ?? [],
+    [data?.tracks, hideCovers, hideEncores],
+  );
+
   const songs = useMemo(
     () =>
       artistData?.tracks && data?.tracks
-        ? matchSongs(data.tracks, artistData.tracks)
+        ? matchSongs(filteredTracks, artistData.tracks)
         : [],
-    [artistData?.tracks, data?.tracks],
+    [artistData?.tracks, data?.tracks, filteredTracks],
   );
 
   const playlistDuration = useMemo(
@@ -74,9 +85,12 @@ const Result = ({ artistQuery }: Props) => {
   const isArtistiWithTrack =
     data?.tracks && data.tracks.length > 0 && artistData;
 
-  const unmatchedCount = (data?.tracks.length ?? 0) - songs.length;
+  const unmatchedCount = filteredTracks.length - songs.length;
 
   const encoreLabel = data && generateEncoreLabel(data);
+
+  const hasCovers = data?.tracks.some((track) => track.cover) ?? false;
+  const hasEncores = data?.tracks.some((track) => track.isEncore) ?? false;
 
   return (
     <article
@@ -185,8 +199,33 @@ const Result = ({ artistQuery }: Props) => {
               </>
             ) : null}
 
+            {(hasCovers || hasEncores) && (
+              <div className="flex gap-4 mb-3 text-sm opacity-90">
+                {hasCovers && (
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={hideCovers}
+                      onChange={(e) => setHideCovers(e.target.checked)}
+                    />
+                    Hide cover songs
+                  </label>
+                )}
+                {hasEncores && (
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={hideEncores}
+                      onChange={(e) => setHideEncores(e.target.checked)}
+                    />
+                    Hide encore songs
+                  </label>
+                )}
+              </div>
+            )}
+
             <Tracks
-              tracks={data.tracks}
+              tracks={filteredTracks}
               links={artistData?.tracks}
               palette={artistData?.palette}
             />
