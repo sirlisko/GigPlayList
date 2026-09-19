@@ -15,7 +15,7 @@ const getArtistInfo = async (artistName: string) => {
     body.artists?.items.find(
       ({ name }) => name.toLowerCase() === artistName.toLocaleLowerCase(),
     ) || body.artists?.items[0];
-  const image = artist?.images[0].url;
+  const image = artist?.images[0]?.url;
   const palette = image && (await Vibrant.from(image).getPalette());
   if (!artist) {
     throw {
@@ -39,7 +39,7 @@ const getSongs = async (artistName: string, offset = 0) => {
   return body?.tracks?.items?.map((track) => ({
     title: track.name.toLowerCase(),
     uri: track.uri,
-    cover: track.album.images[2].url,
+    cover: track.album.images[2]?.url ?? track.album.images[0]?.url,
     previewUrl: track.preview_url,
     duration_ms: track.duration_ms,
   }));

@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const URL = "http://api.songkick.com/api/3.0/events.json";
+const URL = "https://api.songkick.com/api/3.0/events.json";
 
 const { SKAPI } = process.env;
 

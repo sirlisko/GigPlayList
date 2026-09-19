@@ -51,6 +51,18 @@ const isLegitSetlist = (setlist: Setlist): setlist is LegitSetlist =>
 
 export const getAggregatedSetlists = (setlists: Setlists): SetList => {
   const legitSets = setlists.setlist.filter(isLegitSetlist);
+
+  if (legitSets.length === 0) {
+    return {
+      tracks: [],
+      totalSetLists: 0,
+      totalTracks: 0,
+      to: null,
+      from: null,
+      encores: null,
+    };
+  }
+
   const songList = legitSets.flatMap(({ sets: { set } }) =>
     (Array.isArray(set)
       ? set.flatMap(({ song }: Set) => normaliseSongTitle(song))
@@ -92,7 +104,7 @@ export const getAggregatedSetlists = (setlists: Setlists): SetList => {
   const encoreCounts = JSONPath({
     json: setlists,
     path: "$..`@encore,encore",
-  }).reduce((acc: Required<SetList>["encores"], item: string) => {
+  }).reduce((acc: Record<string, number>, item: string) => {
     acc[item] = (acc[item] || 0) + 1;
     return acc;
   }, {});

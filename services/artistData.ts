@@ -3,7 +3,7 @@ import { ArtistData } from "types";
 import { fetcher } from "utils/api";
 
 export const useArtistData = (artist: string | undefined) => {
-  const { data, error, isLoading } = useSWR(
+  const { data, error, isLoading, mutate } = useSWR(
     artist ? `/api/artists/${artist}/spotify` : null,
     fetcher<ArtistData>,
     {
@@ -17,5 +17,6 @@ export const useArtistData = (artist: string | undefined) => {
     artistData: data,
     isLoading,
     isError: error,
+    retry: mutate,
   };
 };

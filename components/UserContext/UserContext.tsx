@@ -29,6 +29,7 @@ interface Props {
 export const UserContext = createContext<{
   user?: User;
   setUser?: (arg: AuthUser, user: SpotifyUser) => void;
+  logout?: () => void;
 }>({});
 
 export const AuthProvider = ({ children }: Props): ReactElement => {
@@ -43,6 +44,10 @@ export const AuthProvider = ({ children }: Props): ReactElement => {
     setUser(auth);
     localStorage.setItem("spotAuth", JSON.stringify(auth));
   };
+  const logout = () => {
+    setUser(undefined);
+    localStorage.removeItem("spotAuth");
+  };
   useEffect(() => {
     try {
       const persistedAuth = localStorage.getItem("spotAuth");
@@ -52,7 +57,7 @@ export const AuthProvider = ({ children }: Props): ReactElement => {
           setUser(auth);
         }
       }
-    } catch (e: any) {
+    } catch {
       localStorage.removeItem("spotAuth");
     }
   }, []);
@@ -61,6 +66,7 @@ export const AuthProvider = ({ children }: Props): ReactElement => {
       value={{
         user,
         setUser: persistUser,
+        logout,
       }}
     >
       {children}

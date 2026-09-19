@@ -9,17 +9,18 @@ interface Props {
   showDesc?: boolean;
 }
 
+const { NEXT_PUBLIC_SPOTIFY_CLIENT_ID } = process.env;
+
 const LoginBanner = ({ onCreatePlaylist, showDesc }: Props) => {
   const [redirect, setRedirect] = useState<string>();
   const { user } = useAuth();
   const { isReady, asPath, push } = useRouter();
   useEffect(() => {
     const authEndpoint = "https://accounts.spotify.com/authorize";
-    const clientId = "e68376bc0d3a4c3e8be32cb10f8043ae";
     const redirectUri = `${window.location.protocol}//${window.location.host}/auth`;
     const scopes = ["playlist-modify-public"];
     setRedirect(
-      `${authEndpoint}?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes.join(
+      `${authEndpoint}?client_id=${NEXT_PUBLIC_SPOTIFY_CLIENT_ID}&redirect_uri=${redirectUri}&scope=${scopes.join(
         "%20",
       )}&response_type=token&show_dialog=true`,
     );

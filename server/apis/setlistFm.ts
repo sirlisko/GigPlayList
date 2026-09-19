@@ -26,12 +26,13 @@ export const getArtistSetlist = async (
         headers,
       },
     );
-    const { data } = await axios(
-      `${DOMAIN}${SETLIST_PATH}${artistData?.artist?.[0].mbid}`,
-      {
-        headers,
-      },
-    );
+    const mbid = artistData?.artist?.[0]?.mbid;
+    if (!mbid) {
+      throw new Error(`No artist found on SetList.fm for "${artistName}"`);
+    }
+    const { data } = await axios(`${DOMAIN}${SETLIST_PATH}${mbid}`, {
+      headers,
+    });
     return data;
   }
   throw new Error("No artist name or id provided");
