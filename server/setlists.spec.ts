@@ -81,5 +81,19 @@ describe("setlists util", () => {
         tracks: [{ title: "bar", count: 1, cover: undefined }],
       });
     });
+
+    it("should return an empty shape without throwing when there are no legit setlists", () => {
+      const fakeSetNoLegitSetlists: Setlists = {
+        setlist: [{ sets: "" }],
+      };
+      expect(getAggregatedSetlists(fakeSetNoLegitSetlists)).toStrictEqual({
+        tracks: [],
+        totalSetLists: 0,
+        totalTracks: 0,
+        to: null,
+        from: null,
+        encores: null,
+      });
+    });
   });
 });

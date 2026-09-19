@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "components/UserContext/UserContext";
 import { useRouter } from "next/router";
+import { createPkcePair } from "utils/pkce";
 
 import { LogIn } from "lucide-react";
+
+export const CODE_VERIFIER_STORAGE_KEY = "spotifyCodeVerifier";
 
 interface Props {
   onCreatePlaylist?: () => void;
@@ -15,14 +18,17 @@ const LoginBanner = ({ onCreatePlaylist, showDesc }: Props) => {
   const { isReady, asPath, push } = useRouter();
   useEffect(() => {
     const authEndpoint = "https://accounts.spotify.com/authorize";
-    const clientId = "e68376bc0d3a4c3e8be32cb10f8043ae";
+    const clientId = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID;
     const redirectUri = `${window.location.protocol}//${window.location.host}/auth`;
     const scopes = ["playlist-modify-public"];
-    setRedirect(
-      `${authEndpoint}?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes.join(
-        "%20",
-      )}&response_type=token&show_dialog=true`,
-    );
+    createPkcePair().then(({ codeVerifier, codeChallenge }) => {
+      sessionStorage.setItem(CODE_VERIFIER_STORAGE_KEY, codeVerifier);
+      setRedirect(
+        `${authEndpoint}?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes.join(
+          "%20",
+        )}&response_type=code&code_challenge_method=S256&code_challenge=${codeChallenge}&show_dialog=true`,
+      );
+    });
   }, [isReady]);
   const onClick = () => {
     if (redirect) {

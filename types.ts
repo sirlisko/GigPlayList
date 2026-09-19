@@ -13,11 +13,11 @@ export interface Track {
 
 export interface SetList {
   tracks: Track[];
-  from: string;
-  to: string;
+  from: string | null;
+  to: string | null;
   totalTracks: number;
   totalSetLists: number;
-  encores?: Record<string, number>;
+  encores: Record<string, number> | null;
 }
 
 export interface Link {

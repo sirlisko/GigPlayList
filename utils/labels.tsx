@@ -2,7 +2,7 @@ import duration from "humanize-duration";
 
 import type { Link as LinkType, SetList } from "types";
 
-export const sanitiseDate = (dateString: string) => {
+export const sanitiseDate = (dateString: string | null) => {
   if (!dateString) return null;
   const [day, month, year] = dateString.split("-");
   return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
