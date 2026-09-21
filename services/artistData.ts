@@ -4,7 +4,7 @@ import { fetcher } from "utils/api";
 
 export const useArtistData = (artist: string | undefined) => {
   const { data, error, isLoading, mutate } = useSWR(
-    artist ? `/api/artists/${artist}/spotify` : null,
+    artist ? `/api/artists/${encodeURIComponent(artist)}/spotify` : null,
     fetcher<ArtistData>,
     {
       revalidateOnFocus: false,

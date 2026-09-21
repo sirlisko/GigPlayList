@@ -21,7 +21,7 @@ export const getArtistSetlist = async (
   }
   if (artistName) {
     const { data: artistData } = await axios(
-      `${DOMAIN}${ARTIST_PATH}${artistName}`,
+      `${DOMAIN}${ARTIST_PATH}${encodeURIComponent(artistName)}`,
       {
         headers,
       },

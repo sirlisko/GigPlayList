@@ -58,7 +58,7 @@ const Search = () => {
     if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
       handleSuggestionSelect(suggestions[selectedIndex]);
     } else if (searchTerm) {
-      router.push("/[...artist]", `/${searchTerm}`);
+      router.push("/[...artist]", `/${encodeURIComponent(searchTerm)}`);
     }
   };
 
@@ -72,7 +72,10 @@ const Search = () => {
     setSearchTerm(suggestion.name);
     setIsOpen(false);
     setSuggestions([]);
-    router.push("/[...artist]", `/${suggestion.name}/${suggestion.id}`);
+    router.push(
+      "/[...artist]",
+      `/${encodeURIComponent(suggestion.name)}/${suggestion.id}`,
+    );
   };
 
   const clearSearch = () => {
@@ -100,8 +103,8 @@ const Search = () => {
         setSelectedIndex((prev) => (prev > -1 ? prev - 1 : -1));
         break;
       case "Enter":
-        event.preventDefault();
         if (selectedIndex >= 0) {
+          event.preventDefault();
           handleSuggestionSelect(suggestions[selectedIndex]);
         }
         break;

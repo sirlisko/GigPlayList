@@ -149,7 +149,7 @@ const Tracks = ({ tracks, links, palette }: TracksProps) => {
                   </button>
                 )}
                 <div className="flex flex-col md:flex-row md:items-baseline">
-                  <span className="font-medium">{title}</span>
+                  <span className="font-medium capitalize">{title}</span>
                   {cover && (
                     <span className="md:ml-1 text-sm opacity-75">
                       (cover of <span className="italic">{cover}</span>)

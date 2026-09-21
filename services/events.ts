@@ -4,7 +4,7 @@ import { fetcher } from "utils/api";
 
 export const useEvents = (artist: string) => {
   const { data, error, isLoading } = useSWR(
-    `/api/artists/${artist}/concerts`,
+    `/api/artists/${encodeURIComponent(artist)}/concerts`,
     fetcher<Event[]>,
     {
       revalidateOnFocus: false,

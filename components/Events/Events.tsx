@@ -14,8 +14,8 @@ const Events = ({ events }: EventsProps) => {
   }
 
   return (
-    <div className="bg-black bg-opacity-30 rounded-lg p-4 mb-6">
-      <h2 className="text-xl font-semibold mb-2">
+    <div className="bg-black bg-opacity-30 rounded-lg py-4 px-3 mb-6">
+      <h2 className="text-xl font-semibold mb-2 px-1">
         {events.length === 1 ? "Next Gig" : `Upcoming Gigs (${events.length})`}
       </h2>
       <ul role="list" className="space-y-1 max-h-48 overflow-y-auto">
@@ -27,7 +27,7 @@ const Events = ({ events }: EventsProps) => {
                 href={buyUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-2 rounded p-1 -mx-1 hover:bg-white hover:bg-opacity-10 transition-colors"
+                className="flex items-center gap-2 rounded p-1 hover:bg-white hover:bg-opacity-10 transition-colors"
               >
                 <Calendar className="shrink-0" size={18} />
                 <span>
