@@ -25,7 +25,6 @@ interface Props {
 const Result = ({ artistQuery }: Props) => {
   const [initialBaground] = useState<string>(document.body.style.background);
   const [hideCovers, setHideCovers] = useState(false);
-  const [hideEncores, setHideEncores] = useState(false);
   const {
     artistData,
     isLoading: isLoadingArtist,
@@ -55,12 +54,8 @@ const Result = ({ artistQuery }: Props) => {
   }, [from]);
 
   const filteredTracks = useMemo(
-    () =>
-      data?.tracks.filter(
-        (track) =>
-          (!hideCovers || !track.cover) && (!hideEncores || !track.isEncore),
-      ) ?? [],
-    [data?.tracks, hideCovers, hideEncores],
+    () => data?.tracks.filter((track) => !hideCovers || !track.cover) ?? [],
+    [data?.tracks, hideCovers],
   );
 
   const songs = useMemo(
@@ -90,7 +85,6 @@ const Result = ({ artistQuery }: Props) => {
   const encoreLabel = data && generateEncoreLabel(data);
 
   const hasCovers = data?.tracks.some((track) => track.cover) ?? false;
-  const hasEncores = data?.tracks.some((track) => track.isEncore) ?? false;
 
   return (
     <article
@@ -199,28 +193,16 @@ const Result = ({ artistQuery }: Props) => {
               </>
             ) : null}
 
-            {(hasCovers || hasEncores) && (
+            {hasCovers && (
               <div className="flex gap-4 mb-3 text-sm opacity-90">
-                {hasCovers && (
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={hideCovers}
-                      onChange={(e) => setHideCovers(e.target.checked)}
-                    />
-                    Hide cover songs
-                  </label>
-                )}
-                {hasEncores && (
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={hideEncores}
-                      onChange={(e) => setHideEncores(e.target.checked)}
-                    />
-                    Hide encore songs
-                  </label>
-                )}
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={hideCovers}
+                    onChange={(e) => setHideCovers(e.target.checked)}
+                  />
+                  Only songs by {artistData.name}
+                </label>
               </div>
             )}
 

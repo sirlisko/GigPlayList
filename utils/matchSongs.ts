@@ -17,7 +17,12 @@ export const isSameSong = (linkTitle: string, title: string) => {
   );
 };
 
+// Covers the artist recorded themselves must win over the original recording:
+// "Hurt" belongs to Johnny Cash on a Johnny Cash playlist.
+export const resolveTrack = ({ title, original }: Track, links: Link[]) =>
+  links.find((link) => isSameSong(link.title, title)) ?? original;
+
 export const matchSongs = (tracks: Track[], links: Link[]): Link[] =>
   tracks
-    .map(({ title }) => links.find((link) => isSameSong(link.title, title)))
+    .map((track) => resolveTrack(track, links))
     .filter((link) => Boolean(link?.uri)) as Link[];

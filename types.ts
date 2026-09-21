@@ -16,6 +16,7 @@ export interface Track {
   count: number;
   isEncore: boolean;
   shows: Show[];
+  original?: Link;
 }
 
 export interface SetList {
