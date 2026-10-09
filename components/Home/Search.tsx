@@ -29,7 +29,7 @@ const Search = () => {
   const [pickedName, setPickedName] = useState<string>();
   // The result page waits for its data before showing, so say it's coming.
   const [isNavigating, setIsNavigating] = useState(false);
-  const { data } = useSearchArtistByName(
+  const { data, query, isLoading, isError } = useSearchArtistByName(
     searchTerm === pickedName ? undefined : searchTerm,
   );
 
@@ -107,8 +107,15 @@ const Search = () => {
     }
   };
 
+  const reopen = () => {
+    if (suggestions.length > 0 && !suppressAutoOpen.current) setIsOpen(true);
+  };
+
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      if (event.key === "ArrowDown") reopen();
+      return;
+    }
 
     switch (event.key) {
       case "ArrowDown":
@@ -134,6 +141,16 @@ const Search = () => {
     }
   };
 
+  const settled =
+    !isNavigating && !suppressAutoOpen.current && query === searchTerm;
+  const searchStatus = !settled
+    ? null
+    : isError
+      ? `Artist suggestions are busy right now. Press Enter to search for “${searchTerm}” anyway.`
+      : data?.artists.length === 0
+        ? `No artists match “${searchTerm}”. Check the spelling.`
+        : null;
+
   return (
     <form
       className="w-full max-w-md relative"
@@ -153,6 +170,7 @@ const Search = () => {
           value={searchTerm}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
+          onFocus={reopen}
           role="combobox"
           aria-autocomplete="list"
           aria-expanded={isOpen}
@@ -178,7 +196,7 @@ const Search = () => {
           aria-label={isNavigating ? "Loading artist" : "Search"}
           disabled={isNavigating}
         >
-          {isNavigating ? (
+          {isNavigating || isLoading ? (
             <LoaderCircle
               size={24}
               className="animate-spin motion-reduce:animate-none"
@@ -191,6 +209,9 @@ const Search = () => {
           {isNavigating ? `Loading ${searchTerm}` : ""}
         </p>
       </div>
+      <p role="status" className="mt-3 text-sm text-white/75 empty:hidden">
+        {searchStatus}
+      </p>
       {isOpen && suggestions.length > 0 && (
         <ul
           id="search-suggestions"
