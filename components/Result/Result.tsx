@@ -1,10 +1,10 @@
-import React, { ReactNode, useEffect, useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import Link from "next/link";
 import classNames from "classnames";
 import { ArrowLeft, Frown, TriangleAlert } from "lucide-react";
 
 import Events from "components/Events/Events";
-import Tracks, { TrackSection } from "components/Tracks/Tracks";
+import Tracks from "components/Tracks/Tracks";
 
 import SavePlaylist from "components/SavePlaylist/SavePlaylist";
 import { useViewParams } from "components/Result/useViewParams";
@@ -23,9 +23,11 @@ import {
 } from "utils/setlistView";
 import {
   calculatePlaylistDuration,
-  generateEncoreLabel,
+  describeEncores,
+  formatGigDate,
   sanitiseDate,
 } from "utils/labels";
+import { BLACK, readableUnder, Rgb, WHITE } from "utils/colors";
 
 interface Props {
   artistQuery: string[];
@@ -36,19 +38,14 @@ const ORDERS: [Order, string][] = [
   ["played", "Most played"],
 ];
 
-const SectionHeading = ({
-  children,
-  action,
-}: {
-  children: ReactNode;
-  action?: ReactNode;
-}) => (
-  <div className="mb-2 flex items-center gap-3">
-    <h2 className="text-sm font-semibold opacity-80">{children}</h2>
-    <div className="flex-1 border-t border-white/20" />
-    {action}
-  </div>
-);
+// Mirrors `stage` in tailwind.config.js.
+const STAGE: Rgb = [22, 25, 63];
+
+const monthYear = (date: string | null) =>
+  sanitiseDate(date)?.toLocaleDateString("en-gb", {
+    month: "short",
+    year: "numeric",
+  });
 
 const Result = ({ artistQuery }: Props) => {
   const {
@@ -97,8 +94,15 @@ const Result = ({ artistQuery }: Props) => {
     [artistData?.tracks, missingTracks],
   );
 
-  const darkVibrantRgb = artistData?.palette?.DarkVibrant?.rgb ?? [0, 0, 0];
-  const from = `rgba(${darkVibrantRgb.join(",")},100)`;
+  // The artist's darkest vivid colour lights the stage, darkened if needed so
+  // white text on it stays readable.
+  const stage = readableUnder(
+    (artistData?.palette?.DarkVibrant?.rgb as Rgb) ?? STAGE,
+    1,
+    BLACK,
+    WHITE,
+  );
+  const from = `rgb(${stage.join(",")})`;
 
   useEffect(() => {
     const initialBackground = document.body.style.background;
@@ -146,165 +150,103 @@ const Result = ({ artistQuery }: Props) => {
 
   const unmatchedCount = playlist.length - songs.length;
 
-  const encoreLabel = data && generateEncoreLabel(data);
+  const encores = data && describeEncores(data);
 
   const hasCovers = data?.tracks.some((track) => track.cover) ?? false;
 
-  const sections: TrackSection[] = [
-    { id: "main", tracks: view.main },
-    {
-      id: "encore",
-      heading: <SectionHeading>Encore</SectionHeading>,
-      tracks: view.encore,
-      isEncore: true,
-    },
-    {
-      id: "extras",
-      heading: (
-        <SectionHeading
-          action={
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input
-                type="checkbox"
-                checked={includeExtras}
-                onChange={(e) => setIncludeExtras(e.target.checked)}
-              />
-              Add to playlist
-            </label>
-          }
-        >
-          Sometimes played
-        </SectionHeading>
-      ),
-      tracks: view.extras,
-    },
-  ].filter(({ tracks }) => tracks.length > 0);
+  const selectedGig = events?.find(({ id }) => id === gig);
+
+  const sheetTitle =
+    order === "played"
+      ? "Most played"
+      : selectedGig
+        ? `${selectedGig.venueName}, ${formatGigDate(selectedGig.date)}`
+        : (data?.tour ?? "Running order");
 
   return (
     <article
-      className="min-h-screen bg-gradient-to-b to-black text-white p-6"
-      style={
-        {
-          "--tw-gradient-from": from,
-          "--tw-gradient-stops": `var(--tw-gradient-from), var(--tw-gradient-to)`,
-        } as React.CSSProperties
-      }
+      className="relative min-h-screen text-white"
+      style={{
+        backgroundColor: from,
+        backgroundImage: `linear-gradient(to bottom, ${from} 0, ${from} 24rem, #000 100%)`,
+      }}
     >
-      <div className="w-full max-w-2xl mx-auto">
-        <header className="flex justify-between items-center mb-6">
-          <Link
-            href="/"
-            className="text-white hover:text-gray-300"
-            aria-label="Go to homepage"
-          >
-            <ArrowLeft size={24} />
-          </Link>
-          <h1 className="text-3xl font-bold">
-            {isArtistiWithTrack && artistData?.name}
-          </h1>
-          <div className="w-6"></div>
-        </header>
+      {isArtistiWithTrack && artistData.image ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-96 overflow-hidden"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={artistData.image}
+            alt=""
+            className="h-full w-full object-cover opacity-40"
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage: `linear-gradient(to bottom, rgba(${stage.join(",")},0.1), ${from})`,
+            }}
+          />
+        </div>
+      ) : null}
+
+      <div className="relative mx-auto w-full max-w-2xl px-4 pb-16 pt-5 sm:px-6">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm text-white/80 hover:text-white"
+        >
+          <ArrowLeft size={18} aria-hidden="true" />
+          New search
+        </Link>
+
         {isArtistiWithTrack ? (
           <>
-            <picture>
-              <img
-                src={artistData?.image}
-                alt={artistData?.name}
-                className="w-32 h-32 mx-auto mb-4 rounded-lg shadow-lg"
-              />
-            </picture>
+            <header className="mt-28 sm:mt-36">
+              <h1 className="display text-6xl sm:text-8xl">
+                {artistData.name}
+              </h1>
+              <p className="mt-5 max-w-prose text-white/85">
+                Likely setlist from{" "}
+                <strong>{data.totalSetLists} recent concerts</strong>
+                {data.tour ? (
+                  <>
+                    {" "}
+                    on the <strong>{data.tour}</strong> tour
+                  </>
+                ) : null}
+                , {monthYear(data.from)} to {monthYear(data.to)}. A typical show
+                has {setLength} songs.
+                {encores ? ` ${encores}.` : ""}
+              </p>
+              {artist?.["life-span"].ended && (
+                <p className="mt-4 flex max-w-prose gap-2 text-sm text-white/85">
+                  <TriangleAlert
+                    size={18}
+                    className="shrink-0"
+                    aria-hidden="true"
+                  />
+                  <span>
+                    This artist stopped performing in{" "}
+                    {new Date(artist["life-span"].end).toLocaleDateString(
+                      "en-gb",
+                      { year: "numeric", month: "long" },
+                    )}
+                    , so these setlists may be out of date.
+                  </span>
+                </p>
+              )}
+            </header>
 
             {events && (
               <Events events={events} selectedGig={gig} onSelectGig={setGig} />
             )}
 
-            {artist?.["life-span"].ended && (
-              <div className="bg-black bg-opacity-30 rounded-lg p-4 mb-6">
-                <h2 className="text-xl font-semibold mb-2 flex gap-1">
-                  <TriangleAlert /> Important notice
-                </h2>
-                <p>
-                  Data may be inaccurate as this artist or band stopped
-                  performing on{" "}
-                  <strong>
-                    {new Date(artist["life-span"].end).toLocaleDateString(
-                      undefined,
-                      {
-                        year: "numeric",
-                        month: "long",
-                      },
-                    )}
-                  </strong>
-                  .
-                </p>
-              </div>
-            )}
-
-            {songs && songs.length > 0 ? (
-              <>
-                <div className="bg-black bg-opacity-30 rounded-lg p-4 mb-6">
-                  <p className="mb-3">
-                    Generated from <strong>{data.totalTracks} songs</strong>{" "}
-                    across <strong>{data.totalSetLists} recent concerts</strong>
-                    {data.tour ? (
-                      <>
-                        {" "}
-                        on the <strong>{data.tour}</strong> tour
-                      </>
-                    ) : null}{" "}
-                    (
-                    {/* A fixed locale keeps server and browser output equal. */}
-                    {sanitiseDate(data.from)?.toLocaleDateString("en-gb", {
-                      year: "numeric",
-                      month: "short",
-                    })}{" "}
-                    to{" "}
-                    {sanitiseDate(data.to)?.toLocaleDateString("en-gb", {
-                      year: "numeric",
-                      month: "short",
-                    })}
-                    )
-                  </p>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <strong className="block">Avg songs/concert</strong>
-                      {setLength}
-                    </div>
-                    <div>
-                      <strong className="block">In your playlist</strong>
-                      {songs.length}
-                    </div>
-                    {encoreLabel ? (
-                      <div className="col-span-2">{encoreLabel}</div>
-                    ) : null}
-                    {playlistDuration ? (
-                      <div className="col-span-2">
-                        <strong>Estimated playtime</strong>: {playlistDuration}
-                      </div>
-                    ) : null}
-                    {unmatchedCount > 0 ? (
-                      <div className="col-span-2 text-xs opacity-60">
-                        {unmatchedCount} setlist song
-                        {unmatchedCount === 1 ? "" : "s"} couldn&apos;t be
-                        matched on Spotify.
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-                <SavePlaylist
-                  gig={events?.find(({ id }) => id === gig)}
-                  artistData={artistData}
-                  songs={songs}
-                  ready={!isLoadingMissingTracks}
-                />
-              </>
-            ) : null}
-
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-4 text-sm">
+            <div className="mt-10 flex flex-wrap items-center gap-x-4 gap-y-3 text-sm">
               <div
                 role="group"
                 aria-label="Sort songs"
-                className="inline-flex rounded-full bg-black/30 p-1"
+                className="inline-flex rounded-full bg-black/35 p-1"
               >
                 {ORDERS.map(([value, label]) => (
                   <button
@@ -313,10 +255,10 @@ const Result = ({ artistQuery }: Props) => {
                     aria-pressed={order === value}
                     onClick={() => setOrder(value)}
                     className={classNames(
-                      "rounded-full px-3 py-1 transition-colors",
+                      "rounded-full px-3 py-1.5 transition-colors",
                       order === value
                         ? "bg-white text-black"
-                        : "opacity-80 hover:opacity-100",
+                        : "text-white/80 hover:text-white",
                     )}
                   >
                     {label}
@@ -325,11 +267,11 @@ const Result = ({ artistQuery }: Props) => {
               </div>
               {data.tours.length > 1 && (
                 <label className="flex items-center gap-2">
-                  <span className="opacity-80">Shows from</span>
+                  <span className="text-white/80">Shows from</span>
                   <select
                     value={tour ?? ""}
                     onChange={(e) => setTour(e.target.value || undefined)}
-                    className="rounded-full bg-black/30 px-3 py-1"
+                    className="rounded-full bg-black/35 px-3 py-1.5"
                   >
                     <option value="">All recent shows</option>
                     {data.tours.map(({ name, shows }) => (
@@ -341,7 +283,7 @@ const Result = ({ artistQuery }: Props) => {
                 </label>
               )}
               {hasCovers && (
-                <label className="flex items-center gap-2 cursor-pointer opacity-90">
+                <label className="flex cursor-pointer items-center gap-2 text-white/85">
                   <input
                     type="checkbox"
                     checked={hideCovers}
@@ -351,55 +293,95 @@ const Result = ({ artistQuery }: Props) => {
                 </label>
               )}
             </div>
+            <p className="mb-8 mt-3 text-sm text-white/70">
+              The highlight shows how many of the {data.totalSetLists} shows
+              each song was played at.
+            </p>
 
             <Tracks
-              sections={sections}
+              sheetTitle={sheetTitle}
+              main={view.main}
+              encore={view.encore}
+              extras={view.extras}
+              extrasHeading={
+                <div className="mb-1">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                    <h2 className="text-lg font-semibold">Sometimes played</h2>
+                    <label className="flex cursor-pointer items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={includeExtras}
+                        onChange={(e) => setIncludeExtras(e.target.checked)}
+                      />
+                      Add these {view.extras.length} to the playlist
+                    </label>
+                  </div>
+                  <p className="text-sm text-white/70">
+                    Not part of a typical night, but they turned up at some
+                    shows.
+                  </p>
+                </div>
+              }
               totalShows={data.totalSetLists}
               links={links}
               palette={artistData?.palette}
             />
           </>
         ) : isErrorState ? (
-          <div className="flex flex-col items-center">
-            <div className="m-auto text-center text-2xl p-3">
-              <TriangleAlert height={100} width={100} />
+          <div className="mt-32 flex flex-col items-start gap-4">
+            <TriangleAlert size={48} aria-hidden="true" />
+            <h1 className="display break-words text-5xl">
+              {artistQuery[0]} didn&apos;t load
+            </h1>
+            <p className="text-white/80">
+              One of the music services didn&apos;t answer. Try again, or search
+              for someone else.
+            </p>
+            <div className="flex gap-4">
+              <button
+                className="rounded-full bg-white px-5 py-2.5 font-semibold text-black"
+                onClick={() => {
+                  retryArtist?.();
+                  retryTracks?.();
+                }}
+              >
+                Try again
+              </button>
+              <Link
+                href="/"
+                className="self-center underline underline-offset-4"
+              >
+                Search another artist
+              </Link>
             </div>
-            <div className="w-full break-words text-center text-2xl p-3">
-              Something went wrong loading <b>{artistQuery[0]}</b>
-            </div>
-            <button
-              className="mt-2 px-6 py-2 rounded-full bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
-              onClick={() => {
-                retryArtist?.();
-                retryTracks?.();
-              }}
-            >
-              Try again
-            </button>
-            <Link
-              href="/"
-              className="mt-4 text-sm underline opacity-75 hover:opacity-100"
-            >
-              Search another artist
-            </Link>
           </div>
         ) : (
-          <div className="flex flex-col items-center">
-            <div className="m-auto text-center text-2xl p-3">
-              <Frown height={100} width={100} />
-            </div>
-            <div className="w-full break-words text-center text-2xl p-3">
-              No setlists found for <b>{artistQuery[0]}</b>
-            </div>
-            <Link
-              href="/"
-              className="mt-2 text-sm underline opacity-75 hover:opacity-100"
-            >
+          <div className="mt-32 flex flex-col items-start gap-4">
+            <Frown size={48} aria-hidden="true" />
+            <h1 className="display break-words text-5xl">
+              No setlists for {artistQuery[0]}
+            </h1>
+            <p className="text-white/80">
+              setlist.fm has no recent shows for this artist, so there&apos;s
+              nothing to build a playlist from yet.
+            </p>
+            <Link href="/" className="underline underline-offset-4">
               Search another artist
             </Link>
           </div>
         )}
       </div>
+
+      {isArtistiWithTrack && songs.length > 0 ? (
+        <SavePlaylist
+          gig={selectedGig}
+          artistData={artistData}
+          songs={songs}
+          duration={playlistDuration || undefined}
+          unmatchedCount={unmatchedCount}
+          ready={!isLoadingMissingTracks}
+        />
+      ) : null}
     </article>
   );
 };

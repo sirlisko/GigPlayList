@@ -8,12 +8,14 @@ import LoginBanner, {
 } from "components/LoginBanner/LoginBanner";
 import { ArtistData, Event, Link } from "types";
 import { formatGigDate } from "utils/labels";
-import { CassetteTape, CircleCheckBig } from "lucide-react";
+import { CircleCheckBig, LoaderCircle } from "lucide-react";
 
 interface SavePlaylistProps {
   gig?: Event;
   artistData: ArtistData;
   songs: Link[];
+  duration?: string;
+  unmatchedCount?: number;
   // False while songs may still change, so a resumed save doesn't go early.
   ready?: boolean;
 }
@@ -106,6 +108,8 @@ const SavePlaylist = ({
   gig,
   artistData: { name },
   songs,
+  duration,
+  unmatchedCount = 0,
   ready = true,
 }: SavePlaylistProps) => {
   const [loading, setLoading] = useState(false);
@@ -207,53 +211,70 @@ const SavePlaylist = ({
     savePlaylist();
   }, [user, ready, songs.length]);
 
+  const summary = `${songs.length} ${songs.length === 1 ? "song" : "songs"}${
+    duration ? `, ${duration}` : ""
+  }`;
+
   return (
-    <div className="text-center mb-8">
-      {error && (
-        <p role="alert" className="mb-4 text-sm text-red-300">
-          {error}
-        </p>
-      )}
-      {loading ? (
-        <p className="m-12 text-lg font-medium flex items-center justify-center">
-          <CassetteTape className="mr-1 animate-bounce" /> Saving your
-          playlist...
-        </p>
-      ) : saved && isUpToDate ? (
-        <div className="flex flex-col items-center gap-3">
-          <p
-            role="status"
-            className="text-lg font-medium flex items-center justify-center"
-          >
-            <CircleCheckBig className="mr-2" /> Playlist saved
+    <div className="sticky bottom-0 z-30 border-t border-white/10 bg-black/70 backdrop-blur-md">
+      <div className="mx-auto flex max-w-2xl items-center gap-4 px-4 py-3 sm:px-6">
+        <div className="min-w-0 flex-1 text-sm">
+          <p className="font-semibold">{summary}</p>
+          {error ? (
+            <p role="alert" className="text-red-300">
+              {error}
+            </p>
+          ) : saved && isUpToDate ? (
+            <p role="status" className="text-white/75">
+              Saved to Spotify
+            </p>
+          ) : (
+            <p className="text-white/70">
+              {!user
+                ? "You'll log in to Spotify first."
+                : unmatchedCount > 0
+                  ? `${unmatchedCount} ${unmatchedCount === 1 ? "song isn't" : "songs aren't"} on Spotify.`
+                  : saved
+                    ? "The list changed since you saved it."
+                    : "Ready to save."}
+            </p>
+          )}
+          <label className="mt-1 inline-flex cursor-pointer items-center gap-2 text-xs text-white/70">
+            <input
+              type="checkbox"
+              checked={isPrivate}
+              disabled={loading}
+              onChange={(e) => changePrivacy(e.target.checked)}
+            />
+            Make the playlist private
+          </label>
+        </div>
+        {loading ? (
+          <p className="flex items-center gap-2 font-semibold" role="status">
+            <LoaderCircle
+              size={18}
+              className="animate-spin motion-reduce:animate-none"
+              aria-hidden="true"
+            />
+            Saving...
           </p>
+        ) : saved && isUpToDate ? (
           <a
             href={saved.url}
             target="_blank"
             rel="noreferrer"
-            className="px-6 py-2 rounded-full border border-green-400 text-white font-bold hover:bg-green-500 transition-all"
+            className="flex items-center gap-2 whitespace-nowrap rounded-full border border-spotify px-5 py-2.5 font-semibold transition-colors hover:bg-spotify hover:text-black"
           >
+            <CircleCheckBig size={18} aria-hidden="true" />
             Open in Spotify
           </a>
-        </div>
-      ) : (
-        <LoginBanner
-          onCreatePlaylist={savePlaylist}
-          label={
-            saved ? "Update playlist on Spotify" : "Save playlist to Spotify"
-          }
-        />
-      )}
-      {!loading && (
-        <label className="mt-4 inline-flex items-center gap-2 text-sm opacity-80 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={isPrivate}
-            onChange={(e) => changePrivacy(e.target.checked)}
+        ) : (
+          <LoginBanner
+            onCreatePlaylist={savePlaylist}
+            label={saved ? "Update playlist" : "Save to Spotify"}
           />
-          Make the playlist private
-        </label>
-      )}
+        )}
+      </div>
     </div>
   );
 };

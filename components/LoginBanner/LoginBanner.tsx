@@ -14,6 +14,9 @@ interface Props {
   label?: string;
 }
 
+const BUTTON =
+  "flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-spotify px-5 py-2.5 font-semibold text-black transition-colors hover:bg-[#3be477]";
+
 const LoginBanner = ({ onCreatePlaylist, label }: Props) => {
   const [redirect, setRedirect] = useState<string>();
   const { user } = useAuth();
@@ -52,27 +55,14 @@ const LoginBanner = ({ onCreatePlaylist, label }: Props) => {
       {redirect && (
         <>
           {user ? (
-            <button
-              className="w-full max-w-xs mx-auto py-3 bg-green-500 text-white rounded-full font-bold hover:bg-green-600 transition-all flex items-center justify-center"
-              onClick={onCreatePlaylist}
-            >
+            <button className={BUTTON} onClick={onCreatePlaylist}>
               {label}
             </button>
           ) : (
-            <>
-              <button
-                className="w-full max-w-xs mx-auto p-3 bg-green-500 text-white rounded-full font-bold hover:bg-green-600 transition-all flex items-center justify-center"
-                onClick={onClick}
-              >
-                <LogIn size={18} className="mr-2" />
-                {onCreatePlaylist ? label : "Log in to Spotify"}
-              </button>
-              {onCreatePlaylist && (
-                <p className="mt-2 text-sm opacity-75">
-                  You&apos;ll log in to Spotify first
-                </p>
-              )}
-            </>
+            <button className={BUTTON} onClick={onClick}>
+              <LogIn size={18} aria-hidden="true" />
+              {onCreatePlaylist ? label : "Log in to Spotify"}
+            </button>
           )}
         </>
       )}

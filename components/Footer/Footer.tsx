@@ -9,7 +9,7 @@ interface FooterProps {
 const Footer = ({ className, showCredits }: FooterProps) => (
   <footer
     className={classNames(
-      "text-sm text-muted-foreground pb-3 pt-10 text-center whitespace-nowrap",
+      "text-sm text-white/60 pb-4 pt-10 text-center whitespace-nowrap",
       className,
     )}
   >

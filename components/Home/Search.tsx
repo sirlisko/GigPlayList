@@ -136,7 +136,7 @@ const Search = () => {
 
   return (
     <form
-      className="w-full max-w-md mb-12 relative"
+      className="w-full max-w-md relative"
       onSubmit={onFormSubmit}
       ref={wrapperRef}
     >
@@ -144,7 +144,8 @@ const Search = () => {
         <input
           id="search"
           type="text"
-          placeholder="Search an Artist"
+          placeholder="Who are you going to see?"
+          aria-label="Artist"
           autoComplete="off"
           spellCheck="false"
           autoFocus={true}
@@ -159,7 +160,7 @@ const Search = () => {
           aria-activedescendant={
             selectedIndex >= 0 ? `suggestion-${selectedIndex}` : undefined
           }
-          className="w-full py-3 px-4 pr-12 rounded-full bg-white bg-opacity-20 backdrop-blur-md text-white placeholder-white placeholder-opacity-75 focus:outline-none focus:ring-2 focus:ring-white text-lg"
+          className="w-full rounded-full border border-white/30 bg-white/10 py-3.5 pl-5 pr-24 text-lg text-white placeholder-white/60 focus:border-white focus:outline-none"
         />
         {searchTerm && (
           <button
@@ -194,7 +195,7 @@ const Search = () => {
         <ul
           id="search-suggestions"
           role="listbox"
-          className="absolute z-10 w-full mt-1 bg-white text-gray-900 rounded-2xl shadow-lg overflow-hidden"
+          className="absolute z-10 mt-2 w-full overflow-hidden rounded-md bg-paper py-1 text-ink shadow-2xl"
         >
           {suggestions.map((suggestion, index) => (
             <li
@@ -202,17 +203,19 @@ const Search = () => {
               id={`suggestion-${index}`}
               role="option"
               aria-selected={index === selectedIndex}
-              className={`px-6 py-3 cursor-pointer transition-colors duration-150 ease-in-out ${
+              className={`cursor-pointer px-5 py-2.5 ${
                 index === selectedIndex
-                  ? "bg-blue-100 text-blue-500"
-                  : "hover:bg-blue-50 hover:text-blue-500"
+                  ? "bg-highlighter/70"
+                  : "hover:bg-highlighter/40"
               }`}
               onClick={() => handleSuggestionSelect(suggestion)}
             >
-              {suggestion.name}
-              {suggestion.disambiguation
-                ? ` (${suggestion.disambiguation})`
-                : ""}
+              <span className="font-semibold">{suggestion.name}</span>
+              {suggestion.disambiguation ? (
+                <span className="block text-sm text-ink/65">
+                  {suggestion.disambiguation}
+                </span>
+              ) : null}
             </li>
           ))}
         </ul>

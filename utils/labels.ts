@@ -28,7 +28,7 @@ export const calculatePlaylistDuration = (songs: LinkType[]) => {
   );
 };
 
-export const generateEncoreLabel = (data: SetList) => {
+export const describeEncores = (data: SetList) => {
   const totalSetLists = data.totalSetLists;
   const encores = data.encores;
 
@@ -50,10 +50,5 @@ export const generateEncoreLabel = (data: SetList) => {
         : `${share} ${n === 1 ? encore : `a ${ordinal(n)}`}`;
     });
 
-  return (
-    <>
-      <strong>Encores: </strong>
-      {encoreLabels.join(", ")}
-    </>
-  );
+  return encoreLabels.join(", ");
 };
