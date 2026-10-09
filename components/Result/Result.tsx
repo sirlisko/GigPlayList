@@ -1,6 +1,5 @@
 import React, { ReactNode, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/router";
 import classNames from "classnames";
 import { ArrowLeft, Frown, TriangleAlert } from "lucide-react";
 
@@ -8,6 +7,7 @@ import Events from "components/Events/Events";
 import Tracks, { TrackSection } from "components/Tracks/Tracks";
 
 import SavePlaylist from "components/SavePlaylist/SavePlaylist";
+import { useViewParams } from "components/Result/useViewParams";
 
 import { useArtistData } from "services/artistData";
 import { useTracks } from "services/tracks";
@@ -36,35 +36,6 @@ const ORDERS: [Order, string][] = [
   ["played", "Most played"],
 ];
 
-// Kept in the URL so the view survives the Spotify login round trip and
-// shared links show the same playlist.
-const useViewParams = () => {
-  const { query, pathname, replace } = useRouter();
-  const setParam = (key: string, value?: string) => {
-    const next = { ...query };
-    if (value === undefined) {
-      delete next[key];
-    } else {
-      next[key] = value;
-    }
-    replace({ pathname, query: next }, undefined, {
-      shallow: true,
-      scroll: false,
-    });
-  };
-  return {
-    order: (query.order === "played" ? "played" : "running") as Order,
-    includeExtras: query.extras === "1",
-    hideCovers: query.covers === "0",
-    setOrder: (order: Order) =>
-      setParam("order", order === "running" ? undefined : order),
-    setIncludeExtras: (include: boolean) =>
-      setParam("extras", include ? "1" : undefined),
-    setHideCovers: (hide: boolean) =>
-      setParam("covers", hide ? "0" : undefined),
-  };
-};
-
 const SectionHeading = ({
   children,
   action,
@@ -82,6 +53,8 @@ const SectionHeading = ({
 const Result = ({ artistQuery }: Props) => {
   const [initialBaground] = useState<string>(document.body.style.background);
   const {
+    tour,
+    setTour,
     order,
     includeExtras,
     hideCovers,
@@ -100,7 +73,7 @@ const Result = ({ artistQuery }: Props) => {
     isLoading: isLoadingTracks,
     isError: isErrorTracks,
     retry: retryTracks,
-  } = useTracks(artistQuery[0], artistQuery[1]);
+  } = useTracks(artistQuery[0], artistQuery[1], tour);
   const { artist } = useGetArtist(artistQuery?.[1]);
   const { events } = useEvents(artistQuery[0]);
 
@@ -344,6 +317,23 @@ const Result = ({ artistQuery }: Props) => {
                   </button>
                 ))}
               </div>
+              {data.tours.length > 1 && (
+                <label className="flex items-center gap-2">
+                  <span className="opacity-80">Shows from</span>
+                  <select
+                    value={tour ?? ""}
+                    onChange={(e) => setTour(e.target.value || undefined)}
+                    className="rounded-full bg-black/30 px-3 py-1"
+                  >
+                    <option value="">All recent shows</option>
+                    {data.tours.map(({ name, shows }) => (
+                      <option key={name} value={name}>
+                        {name} ({shows} {shows === 1 ? "show" : "shows"})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               {hasCovers && (
                 <label className="flex items-center gap-2 cursor-pointer opacity-90">
                   <input

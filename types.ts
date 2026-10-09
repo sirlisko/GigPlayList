@@ -30,6 +30,8 @@ export interface SetList {
   encores: Record<string, number> | null;
   // Only set when every show in the sample belongs to the same tour.
   tour: string | null;
+  // Every named tour in the fetched shows, newest first.
+  tours: { name: string; shows: number }[];
 }
 
 export interface Link {

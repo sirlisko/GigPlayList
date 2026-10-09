@@ -53,6 +53,7 @@ describe("setlists util", () => {
       expect(getAggregatedSetlists(fakeData)).toStrictEqual({
         encores: { "1": 2, "2": 1 },
         tour: null,
+        tours: [],
         from: "2000-01-01",
         to: "2000-01-01",
         totalSetLists: 3,
@@ -106,6 +107,7 @@ describe("setlists util", () => {
       expect(getAggregatedSetlists(fakeSetNoEncores)).toStrictEqual({
         encores: null,
         tour: null,
+        tours: [],
         from: "1999-09-09",
         to: "1999-09-09",
         totalSetLists: 1,
@@ -135,6 +137,7 @@ describe("setlists util", () => {
         from: null,
         encores: null,
         tour: null,
+        tours: [],
       });
     });
 
@@ -172,6 +175,29 @@ describe("setlists util", () => {
           shows: [{ date: "2001-05-05", venue: "The Forum, Inglewood" }],
         },
       ]);
+    });
+
+    it("should list tours newest first and filter by one", () => {
+      const show = (tour: string, song: string) => ({
+        eventDate: "2001-05-05",
+        tour: { name: tour },
+        sets: { set: { song: { name: song } } },
+      });
+      const setlists = {
+        setlist: [
+          show("2024", "new song"),
+          show("2024", "new song"),
+          show("Old Tour", "old song"),
+        ],
+      };
+      expect(getAggregatedSetlists(setlists).tours).toEqual([
+        { name: "2024", shows: 2 },
+        { name: "Old Tour", shows: 1 },
+      ]);
+      const filtered = getAggregatedSetlists(setlists, "Old Tour");
+      expect(filtered.totalSetLists).toBe(1);
+      expect(filtered.tracks.map(({ title }) => title)).toEqual(["old song"]);
+      expect(filtered.tours).toHaveLength(2);
     });
 
     it("should name the tour only when every show belongs to it", () => {

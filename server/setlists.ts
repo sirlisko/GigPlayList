@@ -63,8 +63,27 @@ const getSharedTour = (setlists: LegitSetlist[]) => {
     : null;
 };
 
-export const getAggregatedSetlists = (setlists: Setlists): SetList => {
-  const legitSets = setlists.setlist.filter(isLegitSetlist);
+// Setlists arrive newest first, and so do the tours. A Map keeps that order
+// even for tours named like numbers ("2024"), which objects would reorder.
+const listTours = (setlists: LegitSetlist[]) => {
+  const shows = new Map<string, number>();
+  setlists.forEach(({ tour }) => {
+    if (tour?.name) {
+      shows.set(tour.name, (shows.get(tour.name) ?? 0) + 1);
+    }
+  });
+  return Array.from(shows, ([name, count]) => ({ name, shows: count }));
+};
+
+export const getAggregatedSetlists = (
+  setlists: Setlists,
+  tour?: string,
+): SetList => {
+  const allLegitSets = setlists.setlist.filter(isLegitSetlist);
+  const tours = listTours(allLegitSets);
+  const legitSets = tour
+    ? allLegitSets.filter((setlist) => setlist.tour?.name === tour)
+    : allLegitSets;
 
   if (legitSets.length === 0) {
     return {
@@ -75,6 +94,7 @@ export const getAggregatedSetlists = (setlists: Setlists): SetList => {
       from: null,
       encores: null,
       tour: null,
+      tours,
     };
   }
 
@@ -181,5 +201,6 @@ export const getAggregatedSetlists = (setlists: Setlists): SetList => {
     from: legitSets?.[legitSets.length - 1].eventDate,
     encores: Object.keys(encoreCounts).length === 0 ? null : encoreCounts,
     tour: getSharedTour(legitSets),
+    tours,
   };
 };

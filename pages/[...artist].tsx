@@ -8,6 +8,7 @@ import Footer from "components/Footer/Footer";
 import { useArtistData } from "services/artistData";
 import classNames from "classnames";
 import { useTracks } from "services/tracks";
+import { useViewParams } from "components/Result/useViewParams";
 
 const ResultPage = () => {
   const router = useRouter();
@@ -17,7 +18,12 @@ const ResultPage = () => {
     artist?.[0],
     artist?.[1],
   );
-  const { isLoading: isLoadingTracks } = useTracks(artist?.[0], artist?.[1]);
+  const { tour } = useViewParams();
+  const { isLoading: isLoadingTracks } = useTracks(
+    artist?.[0],
+    artist?.[1],
+    tour,
+  );
   const isLoading = isLoadingArtist || isLoadingTracks;
   const showAlternate = isLoading || !artist;
 
