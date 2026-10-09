@@ -1,4 +1,4 @@
-import React, { ReactNode, useEffect, useMemo, useState } from "react";
+import React, { ReactNode, useEffect, useMemo } from "react";
 import Link from "next/link";
 import classNames from "classnames";
 import { ArrowLeft, Frown, TriangleAlert } from "lucide-react";
@@ -51,7 +51,6 @@ const SectionHeading = ({
 );
 
 const Result = ({ artistQuery }: Props) => {
-  const [initialBaground] = useState<string>(document.body.style.background);
   const {
     gig,
     setGig,
@@ -102,8 +101,9 @@ const Result = ({ artistQuery }: Props) => {
   const from = `rgba(${darkVibrantRgb.join(",")},100)`;
 
   useEffect(() => {
+    const initialBackground = document.body.style.background;
     return () => {
-      document.body.style.background = initialBaground;
+      document.body.style.background = initialBackground;
     };
   }, []);
 
@@ -253,12 +253,13 @@ const Result = ({ artistQuery }: Props) => {
                       </>
                     ) : null}{" "}
                     (
-                    {sanitiseDate(data.from)?.toLocaleDateString(undefined, {
+                    {/* A fixed locale keeps server and browser output equal. */}
+                    {sanitiseDate(data.from)?.toLocaleDateString("en-gb", {
                       year: "numeric",
                       month: "short",
                     })}{" "}
                     to{" "}
-                    {sanitiseDate(data.to)?.toLocaleDateString(undefined, {
+                    {sanitiseDate(data.to)?.toLocaleDateString("en-gb", {
                       year: "numeric",
                       month: "short",
                     })}
