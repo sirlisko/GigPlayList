@@ -6,7 +6,11 @@ import React, {
   KeyboardEvent,
 } from "react";
 import { useRouter } from "next/router";
-import { Search as SearchIcon, X as CloseIcon } from "lucide-react";
+import {
+  LoaderCircle,
+  Search as SearchIcon,
+  X as CloseIcon,
+} from "lucide-react";
 import { useSearchArtistByName } from "services/searchArtist";
 import { ArtistInfo } from "types";
 
@@ -20,7 +24,24 @@ const Search = () => {
   const suppressAutoOpen = useRef(false);
   const router = useRouter();
 
-  const { data } = useSearchArtistByName(searchTerm);
+  // Picking a suggestion fills the input with its name; searching for it
+  // again would only burn MusicBrainz's one-request-a-second allowance.
+  const [pickedName, setPickedName] = useState<string>();
+  // The result page waits for its data before showing, so say it's coming.
+  const [isNavigating, setIsNavigating] = useState(false);
+  const { data } = useSearchArtistByName(
+    searchTerm === pickedName ? undefined : searchTerm,
+  );
+
+  const goTo = (as: string) => {
+    setIsNavigating(true);
+    router
+      .push("/[...artist]", as)
+      .then((navigated) => {
+        if (!navigated) setIsNavigating(false);
+      })
+      .catch(() => setIsNavigating(false));
+  };
 
   useEffect(() => {
     if (suppressAutoOpen.current) {
@@ -58,7 +79,7 @@ const Search = () => {
     if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
       handleSuggestionSelect(suggestions[selectedIndex]);
     } else if (searchTerm) {
-      router.push("/[...artist]", `/${encodeURIComponent(searchTerm)}`);
+      goTo(`/${encodeURIComponent(searchTerm)}`);
     }
   };
 
@@ -69,13 +90,11 @@ const Search = () => {
 
   const handleSuggestionSelect = (suggestion: ArtistInfo) => {
     suppressAutoOpen.current = true;
+    setPickedName(suggestion.name);
     setSearchTerm(suggestion.name);
     setIsOpen(false);
     setSuggestions([]);
-    router.push(
-      "/[...artist]",
-      `/${encodeURIComponent(suggestion.name)}/${suggestion.id}`,
-    );
+    goTo(`/${encodeURIComponent(suggestion.name)}/${suggestion.id}`);
   };
 
   const clearSearch = () => {
@@ -155,10 +174,21 @@ const Search = () => {
         <button
           className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white opacity-75 hover:opacity-100"
           type="submit"
-          aria-label="Search"
+          aria-label={isNavigating ? "Loading artist" : "Search"}
+          disabled={isNavigating}
         >
-          <SearchIcon size={24} />
+          {isNavigating ? (
+            <LoaderCircle
+              size={24}
+              className="animate-spin motion-reduce:animate-none"
+            />
+          ) : (
+            <SearchIcon size={24} />
+          )}
         </button>
+        <p role="status" className="sr-only">
+          {isNavigating ? `Loading ${searchTerm}` : ""}
+        </p>
       </div>
       {isOpen && suggestions.length > 0 && (
         <ul
