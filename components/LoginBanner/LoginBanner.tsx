@@ -2,10 +2,10 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "components/UserContext/UserContext";
 import { useRouter } from "next/router";
 import { createPkcePair } from "utils/pkce";
+import { CODE_VERIFIER_STORAGE_KEY } from "utils/spotifyAuth";
 
 import { LogIn } from "lucide-react";
 
-export const CODE_VERIFIER_STORAGE_KEY = "spotifyCodeVerifier";
 // Holds the page a save was requested from, so it can resume after login.
 export const SAVE_AFTER_LOGIN_STORAGE_KEY = "gigplaylist:saveAfterLogin";
 
@@ -22,7 +22,13 @@ const LoginBanner = ({ onCreatePlaylist, label }: Props) => {
     const authEndpoint = "https://accounts.spotify.com/authorize";
     const clientId = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID;
     const redirectUri = `${window.location.protocol}//${window.location.host}/auth`;
-    const scopes = ["playlist-modify-public"];
+    // Reading private playlists lets a private GigPlayList be found and
+    // updated next time instead of duplicated.
+    const scopes = [
+      "playlist-modify-public",
+      "playlist-modify-private",
+      "playlist-read-private",
+    ];
     createPkcePair().then(({ codeVerifier, codeChallenge }) => {
       sessionStorage.setItem(CODE_VERIFIER_STORAGE_KEY, codeVerifier);
       setRedirect(
