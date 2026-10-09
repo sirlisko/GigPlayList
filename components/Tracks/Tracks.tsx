@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { ReactNode, useEffect, useState } from "react";
 
 import { Track, Link, ArtistData, Show } from "types";
 import { resolveTrack } from "utils/matchSongs";
@@ -10,13 +10,20 @@ import PauseIcon from "components/Icons/Pause";
 import PlayIcon from "components/Icons/Play";
 import { useRouter } from "next/router";
 
-interface TracksProps {
+export interface TrackSection {
+  id: string;
+  heading?: ReactNode;
   tracks: Track[];
+}
+
+interface TracksProps {
+  sections: TrackSection[];
+  totalShows: number;
   links?: Link[];
   palette?: ArtistData["palette"];
 }
 
-const Tracks = ({ tracks, links, palette }: TracksProps) => {
+const Tracks = ({ sections, totalShows, links, palette }: TracksProps) => {
   const [loaded, setLoaded] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<string | null>(null);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
@@ -57,8 +64,12 @@ const Tracks = ({ tracks, links, palette }: TracksProps) => {
   };
 
   useEffect(() => {
-    const handleRouteChange = () => {
-      if (audio) {
+    // Shallow changes only update the view params; the page stays put.
+    const handleRouteChange = (
+      _url: string,
+      { shallow }: { shallow: boolean },
+    ) => {
+      if (audio && !shallow) {
         audio.pause();
         setAudio(null);
         setCurrentTrack(null);
@@ -77,15 +88,10 @@ const Tracks = ({ tracks, links, palette }: TracksProps) => {
   const vibrantRgb = palette?.Vibrant?.rgb ?? [255, 255, 255];
   const darkVibrantRgb = palette?.DarkVibrant?.rgb ?? [0, 0, 0];
 
-  const getGradientStyle = (count: number, maxCount: number) => {
-    const intensity = (count / maxCount) * 100;
-    return {
-      background: `linear-gradient(90deg, rgba(${vibrantRgb.join(",")},${intensity / 100}) 0%, rgba(0,0,0,0) 100%)`,
-      transition: "all 1s ease-out",
-      opacity: loaded ? 1 : 0,
-      transform: `translateX(${loaded ? "0" : "-20px"})`,
-    };
-  };
+  const getBarStyle = (count: number) => ({
+    width: loaded ? `${(count / totalShows) * 100}%` : 0,
+    background: `rgba(${vibrantRgb.join(",")}, 0.55)`,
+  });
 
   const customStyle = {
     "--custom-bg-color": `rgba(${darkVibrantRgb.join(",")}, 1)`,
@@ -93,99 +99,118 @@ const Tracks = ({ tracks, links, palette }: TracksProps) => {
 
   return (
     <>
-      <ul role="list" className="space-y-2">
-        {tracks.map((track) => {
-          const { count, title, cover, isEncore, shows } = track;
-          const link = resolveTrack(track, links ?? []);
-          const isPlaying = currentTrack === title;
-          return (
-            <li
-              key={title}
-              style={getGradientStyle(count, tracks[0].count)}
-              className="group relative flex items-center space-between justify-between rounded p-3 transition-all"
-            >
-              <div className="pl-12 flex items-center">
-                <div className="absolute left-0 top-0 h-full">
-                  {link?.cover ? (
-                    <picture>
-                      <img
-                        src={link.cover}
-                        alt={`${title} album cover`}
-                        className="w-12 object-cover rounded h-full"
-                      />
-                    </picture>
-                  ) : (
-                    <div
-                      className="w-12 flex items-center justify-center rounded h-full"
-                      style={{
-                        background: `rgba(${vibrantRgb.join(",")}, 255)`,
-                      }}
-                    >
-                      <Disc size={24} className="text-gray-500" />{" "}
+      {sections.map(({ id, heading, tracks }) => (
+        <section key={id} className="mb-6">
+          {heading}
+          <ul role="list" className="space-y-2">
+            {tracks.map((track) => {
+              const { count, title, cover, isEncore, shows } = track;
+              const link = resolveTrack(track, links ?? []);
+              const isPlaying = currentTrack === title;
+              return (
+                <li
+                  key={title}
+                  className="group relative isolate flex items-center justify-between overflow-hidden rounded bg-white/5 p-3"
+                >
+                  <div
+                    aria-hidden="true"
+                    className="absolute inset-y-0 left-0 -z-10 transition-[width] duration-1000 ease-out motion-reduce:transition-none"
+                    style={getBarStyle(count)}
+                  />
+                  <div className="pl-12 flex items-center">
+                    <div className="absolute left-0 top-0 h-full">
+                      {link?.cover ? (
+                        <picture>
+                          <img
+                            src={link.cover}
+                            alt={`${title} album cover`}
+                            className="w-12 object-cover rounded h-full"
+                          />
+                        </picture>
+                      ) : (
+                        <div
+                          className="w-12 flex items-center justify-center rounded h-full"
+                          style={{
+                            background: `rgba(${vibrantRgb.join(",")}, 255)`,
+                          }}
+                        >
+                          <Disc size={24} className="text-gray-500" />{" "}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                {link?.previewUrl && (
-                  <button
-                    onClick={() => handlePreview(link.previewUrl, title)}
-                    className={`absolute left-0 top-0 h-full p-3 rounded-full
+                    {link?.previewUrl && (
+                      <button
+                        onClick={() => handlePreview(link.previewUrl, title)}
+                        className={`absolute left-0 top-0 h-full p-3 rounded-full
                               bg-transparent
                               opacity-100 md:opacity-0 group-hover:opacity-100
                               transition-opacity duration-300
                               md:group-hover:bg-black/50
                               md:hover:!bg-[color:var(--custom-bg-color)] hover:opacity-100`}
-                    aria-pressed={isPlaying}
-                    aria-label={isPlaying ? "Pause" : "Play"}
-                    style={{
-                      ...customStyle,
-                      opacity: isPlaying ? 1 : undefined,
-                    }}
-                  >
-                    {isPlaying ? (
-                      <PauseIcon stroke={`rgb(${darkVibrantRgb.join(",")}`} />
-                    ) : (
-                      <PlayIcon stroke={`rgb(${darkVibrantRgb.join(",")}`} />
+                        aria-pressed={isPlaying}
+                        aria-label={isPlaying ? "Pause" : "Play"}
+                        style={{
+                          ...customStyle,
+                          opacity: isPlaying ? 1 : undefined,
+                        }}
+                      >
+                        {isPlaying ? (
+                          <PauseIcon
+                            stroke={`rgb(${darkVibrantRgb.join(",")}`}
+                          />
+                        ) : (
+                          <PlayIcon
+                            stroke={`rgb(${darkVibrantRgb.join(",")}`}
+                          />
+                        )}
+                      </button>
                     )}
-                  </button>
-                )}
-                <div className="flex flex-col md:flex-row md:items-baseline">
-                  <span className="font-medium capitalize">{title}</span>
-                  {cover && (
-                    <span className="md:ml-1 text-sm opacity-75">
-                      (cover of <span className="italic">{cover}</span>)
-                    </span>
-                  )}
-                  {isEncore && (
-                    <span className="md:ml-1 text-sm opacity-75">(encore)</span>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                {link?.uri && (
-                  <a href={link.uri} aria-label="Open song in Spotify">
-                    <SpotifyLogo />
-                  </a>
-                )}
-                {shows.length > 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedTrack({ title, shows })}
-                    className="text-sm opacity-75 hover:opacity-100 underline decoration-dotted underline-offset-2"
-                  >
-                    <span className="hidden md:inline">Played </span>
-                    <span className="whitespace-nowrap">{count} times</span>
-                  </button>
-                ) : (
-                  <div className="text-sm opacity-75">
-                    <span className="hidden md:inline">Played </span>
-                    <span className="whitespace-nowrap">{count} times</span>
+                    <div className="flex flex-col md:flex-row md:items-baseline">
+                      <span className="font-medium">{title}</span>
+                      {cover && (
+                        <span className="md:ml-1 text-sm opacity-75">
+                          (cover of <span className="italic">{cover}</span>)
+                        </span>
+                      )}
+                      {isEncore && (
+                        <span className="md:ml-1 text-sm opacity-75">
+                          (encore)
+                        </span>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+                  <div className="flex items-center space-x-2">
+                    {link?.uri && (
+                      <a href={link.uri} aria-label="Open song in Spotify">
+                        <SpotifyLogo />
+                      </a>
+                    )}
+                    {shows.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTrack({ title, shows })}
+                        className="text-sm opacity-75 hover:opacity-100 underline decoration-dotted underline-offset-2"
+                      >
+                        <span className="whitespace-nowrap">
+                          {count} of {totalShows}
+                        </span>
+                        <span className="hidden md:inline"> shows</span>
+                      </button>
+                    ) : (
+                      <div className="text-sm opacity-75">
+                        <span className="whitespace-nowrap">
+                          {count} of {totalShows}
+                        </span>
+                        <span className="hidden md:inline"> shows</span>
+                      </div>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
       {selectedTrack && (
         <div
           role="dialog"

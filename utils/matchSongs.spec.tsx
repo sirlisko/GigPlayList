@@ -32,6 +32,7 @@ describe("resolveTrack", () => {
     title: "hurt",
     count: 1,
     isEncore: false,
+    position: 0,
     shows: [],
     ...overrides,
   });

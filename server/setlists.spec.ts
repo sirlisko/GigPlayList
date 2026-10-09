@@ -52,6 +52,7 @@ describe("setlists util", () => {
       const d1999 = { date: "1999-09-09", venue: undefined };
       expect(getAggregatedSetlists(fakeData)).toStrictEqual({
         encores: { "1": 2, "2": 1 },
+        tour: null,
         from: "2000-01-01",
         to: "2000-01-01",
         totalSetLists: 3,
@@ -61,21 +62,24 @@ describe("setlists util", () => {
             title: "bar",
             count: 3,
             cover: "coverBand",
-            isEncore: true,
+            isEncore: false,
+            position: (1 / 3 + 0 + 1 / 2) / 3,
             shows: [d1, d1999, d1],
           },
           {
-            title: "foo",
+            title: "fOo",
             count: 2,
             cover: undefined,
-            isEncore: true,
+            isEncore: false,
+            position: 0,
             shows: [d1, d1],
           },
           {
             title: "foobar",
             count: 2,
             cover: undefined,
-            isEncore: true,
+            isEncore: false,
+            position: (2 / 3 + 1) / 2,
             shows: [d1, d1],
           },
           {
@@ -83,6 +87,7 @@ describe("setlists util", () => {
             count: 1,
             cover: undefined,
             isEncore: true,
+            position: 1,
             shows: [d1],
           },
         ],
@@ -100,6 +105,7 @@ describe("setlists util", () => {
       };
       expect(getAggregatedSetlists(fakeSetNoEncores)).toStrictEqual({
         encores: null,
+        tour: null,
         from: "1999-09-09",
         to: "1999-09-09",
         totalSetLists: 1,
@@ -110,6 +116,7 @@ describe("setlists util", () => {
             count: 1,
             cover: undefined,
             isEncore: false,
+            position: 0,
             shows: [{ date: "1999-09-09", venue: undefined }],
           },
         ],
@@ -127,6 +134,7 @@ describe("setlists util", () => {
         to: null,
         from: null,
         encores: null,
+        tour: null,
       });
     });
 
@@ -152,6 +160,7 @@ describe("setlists util", () => {
           count: 1,
           cover: undefined,
           isEncore: false,
+          position: 0,
           shows: [{ date: "2001-05-05", venue: "The Forum, Inglewood" }],
         },
         {
@@ -159,9 +168,29 @@ describe("setlists util", () => {
           count: 1,
           cover: undefined,
           isEncore: true,
+          position: 1,
           shows: [{ date: "2001-05-05", venue: "The Forum, Inglewood" }],
         },
       ]);
+    });
+
+    it("should name the tour only when every show belongs to it", () => {
+      const show = (tour?: string) => ({
+        eventDate: "2001-05-05",
+        tour: tour ? { name: tour } : undefined,
+        sets: { set: { song: { name: "song" } } },
+      });
+      expect(
+        getAggregatedSetlists({ setlist: [show("Tour A"), show("Tour A")] })
+          .tour,
+      ).toBe("Tour A");
+      expect(
+        getAggregatedSetlists({ setlist: [show("Tour A"), show("Tour B")] })
+          .tour,
+      ).toBeNull();
+      expect(
+        getAggregatedSetlists({ setlist: [show("Tour A"), show()] }).tour,
+      ).toBeNull();
     });
   });
 });

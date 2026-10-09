@@ -15,6 +15,8 @@ export interface Track {
   cover?: string;
   count: number;
   isEncore: boolean;
+  // Average relative position in the set: 0 opens the show, 1 closes it.
+  position: number;
   shows: Show[];
   original?: Link;
 }
@@ -26,6 +28,8 @@ export interface SetList {
   totalTracks: number;
   totalSetLists: number;
   encores: Record<string, number> | null;
+  // Only set when every show in the sample belongs to the same tour.
+  tour: string | null;
 }
 
 export interface Link {

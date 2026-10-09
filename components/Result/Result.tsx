@@ -1,9 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { ReactNode, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/router";
+import classNames from "classnames";
 import { ArrowLeft, Frown, TriangleAlert } from "lucide-react";
 
 import Events from "components/Events/Events";
-import Tracks from "components/Tracks/Tracks";
+import Tracks, { TrackSection } from "components/Tracks/Tracks";
 
 import SavePlaylist from "components/SavePlaylist/SavePlaylist";
 
@@ -11,7 +13,14 @@ import { useArtistData } from "services/artistData";
 import { useTracks } from "services/tracks";
 import { useEvents } from "services/events";
 import { useGetArtist } from "services/searchArtist";
-import { matchSongs } from "utils/matchSongs";
+import { useMissingTracks } from "services/missingTracks";
+import { matchSongs, resolveTrack } from "utils/matchSongs";
+import {
+  buildSetlistView,
+  Order,
+  playlistTracks,
+  typicalSetLength,
+} from "utils/setlistView";
 import {
   calculatePlaylistDuration,
   generateEncoreLabel,
@@ -22,15 +31,70 @@ interface Props {
   artistQuery: string[];
 }
 
+const ORDERS: [Order, string][] = [
+  ["running", "Running order"],
+  ["played", "Most played"],
+];
+
+// Kept in the URL so the view survives the Spotify login round trip and
+// shared links show the same playlist.
+const useViewParams = () => {
+  const { query, pathname, replace } = useRouter();
+  const setParam = (key: string, value?: string) => {
+    const next = { ...query };
+    if (value === undefined) {
+      delete next[key];
+    } else {
+      next[key] = value;
+    }
+    replace({ pathname, query: next }, undefined, {
+      shallow: true,
+      scroll: false,
+    });
+  };
+  return {
+    order: (query.order === "played" ? "played" : "running") as Order,
+    includeExtras: query.extras === "1",
+    hideCovers: query.covers === "0",
+    setOrder: (order: Order) =>
+      setParam("order", order === "running" ? undefined : order),
+    setIncludeExtras: (include: boolean) =>
+      setParam("extras", include ? "1" : undefined),
+    setHideCovers: (hide: boolean) =>
+      setParam("covers", hide ? "0" : undefined),
+  };
+};
+
+const SectionHeading = ({
+  children,
+  action,
+}: {
+  children: ReactNode;
+  action?: ReactNode;
+}) => (
+  <div className="mb-2 flex items-center gap-3">
+    <h2 className="text-sm font-semibold opacity-80">{children}</h2>
+    <div className="flex-1 border-t border-white/20" />
+    {action}
+  </div>
+);
+
 const Result = ({ artistQuery }: Props) => {
   const [initialBaground] = useState<string>(document.body.style.background);
-  const [hideCovers, setHideCovers] = useState(false);
+  const {
+    order,
+    includeExtras,
+    hideCovers,
+    setOrder,
+    setIncludeExtras,
+    setHideCovers,
+  } = useViewParams();
   const {
     artistData,
     isLoading: isLoadingArtist,
     isError: isErrorArtist,
     retry: retryArtist,
-  } = useArtistData(artistQuery[0]);
+  } = useArtistData(artistQuery[0], artistQuery[1]);
   const {
     data,
     isLoading: isLoadingTracks,
@@ -39,6 +103,25 @@ const Result = ({ artistQuery }: Props) => {
   } = useTracks(artistQuery[0], artistQuery[1]);
   const { artist } = useGetArtist(artistQuery?.[1]);
   const { events } = useEvents(artistQuery[0]);
+
+  const unmatchedTitles = useMemo(
+    () =>
+      artistData && data
+        ? data.tracks
+            .filter((track) => !resolveTrack(track, artistData.tracks))
+            .map(({ title }) => title)
+        : [],
+    [artistData, data],
+  );
+  const { missingTracks, isLoading: isLoadingMissingTracks } = useMissingTracks(
+    artistData?.name,
+    unmatchedTitles,
+  );
+
+  const links = useMemo(
+    () => [...(artistData?.tracks ?? []), ...(missingTracks ?? [])],
+    [artistData?.tracks, missingTracks],
+  );
 
   const darkVibrantRgb = artistData?.palette?.DarkVibrant?.rgb ?? [0, 0, 0];
   const from = `rgba(${darkVibrantRgb.join(",")},100)`;
@@ -58,13 +141,19 @@ const Result = ({ artistQuery }: Props) => {
     [data?.tracks, hideCovers],
   );
 
-  const songs = useMemo(
-    () =>
-      artistData?.tracks && data?.tracks
-        ? matchSongs(filteredTracks, artistData.tracks)
-        : [],
-    [artistData?.tracks, data?.tracks, filteredTracks],
+  const setLength = data ? typicalSetLength(data) : 0;
+
+  const view = useMemo(
+    () => buildSetlistView(filteredTracks, setLength, order),
+    [filteredTracks, setLength, order],
   );
+
+  const playlist = useMemo(
+    () => playlistTracks(view, includeExtras),
+    [view, includeExtras],
+  );
+
+  const songs = useMemo(() => matchSongs(playlist, links), [playlist, links]);
 
   const playlistDuration = useMemo(
     () => calculatePlaylistDuration(songs),
@@ -80,11 +169,40 @@ const Result = ({ artistQuery }: Props) => {
   const isArtistiWithTrack =
     data?.tracks && data.tracks.length > 0 && artistData;
 
-  const unmatchedCount = filteredTracks.length - songs.length;
+  const unmatchedCount = playlist.length - songs.length;
 
   const encoreLabel = data && generateEncoreLabel(data);
 
   const hasCovers = data?.tracks.some((track) => track.cover) ?? false;
+
+  const sections: TrackSection[] = [
+    { id: "main", tracks: view.main },
+    {
+      id: "encore",
+      heading: <SectionHeading>Encore</SectionHeading>,
+      tracks: view.encore,
+    },
+    {
+      id: "extras",
+      heading: (
+        <SectionHeading
+          action={
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeExtras}
+                onChange={(e) => setIncludeExtras(e.target.checked)}
+              />
+              Add to playlist
+            </label>
+          }
+        >
+          Sometimes played
+        </SectionHeading>
+      ),
+      tracks: view.extras,
+    },
+  ].filter(({ tracks }) => tracks.length > 0);
 
   return (
     <article
@@ -98,13 +216,12 @@ const Result = ({ artistQuery }: Props) => {
     >
       <div className="w-full max-w-2xl mx-auto">
         <header className="flex justify-between items-center mb-6">
-          <Link href="/" passHref>
-            <button
-              className="text-white hover:text-gray-300"
-              aria-label="Go to homepage"
-            >
-              <ArrowLeft size={24} />
-            </button>
+          <Link
+            href="/"
+            className="text-white hover:text-gray-300"
+            aria-label="Go to homepage"
+          >
+            <ArrowLeft size={24} />
           </Link>
           <h1 className="text-3xl font-bold">
             {isArtistiWithTrack && artistData?.name}
@@ -150,7 +267,13 @@ const Result = ({ artistQuery }: Props) => {
                 <div className="bg-black bg-opacity-30 rounded-lg p-4 mb-6">
                   <p className="mb-3">
                     Generated from <strong>{data.totalTracks} songs</strong>{" "}
-                    across <strong>{data.totalSetLists} recent concerts</strong>{" "}
+                    across <strong>{data.totalSetLists} recent concerts</strong>
+                    {data.tour ? (
+                      <>
+                        {" "}
+                        on the <strong>{data.tour}</strong> tour
+                      </>
+                    ) : null}{" "}
                     (
                     {sanitiseDate(data.from)?.toLocaleDateString(undefined, {
                       year: "numeric",
@@ -166,10 +289,10 @@ const Result = ({ artistQuery }: Props) => {
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
                       <strong className="block">Avg songs/concert</strong>
-                      {Math.round(data.totalTracks / data.totalSetLists)}
+                      {setLength}
                     </div>
                     <div>
-                      <strong className="block">Likely songs</strong>
+                      <strong className="block">In your playlist</strong>
                       {songs.length}
                     </div>
                     {encoreLabel ? (
@@ -189,13 +312,39 @@ const Result = ({ artistQuery }: Props) => {
                     ) : null}
                   </div>
                 </div>
-                <SavePlaylist artistData={artistData} songs={songs} />
+                <SavePlaylist
+                  artistData={artistData}
+                  songs={songs}
+                  ready={!isLoadingMissingTracks}
+                />
               </>
             ) : null}
 
-            {hasCovers && (
-              <div className="flex gap-4 mb-3 text-sm opacity-90">
-                <label className="flex items-center gap-2 cursor-pointer">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4 text-sm">
+              <div
+                role="group"
+                aria-label="Sort songs"
+                className="inline-flex rounded-full bg-black/30 p-1"
+              >
+                {ORDERS.map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={order === value}
+                    onClick={() => setOrder(value)}
+                    className={classNames(
+                      "rounded-full px-3 py-1 transition-colors",
+                      order === value
+                        ? "bg-white text-black"
+                        : "opacity-80 hover:opacity-100",
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {hasCovers && (
+                <label className="flex items-center gap-2 cursor-pointer opacity-90">
                   <input
                     type="checkbox"
                     checked={hideCovers}
@@ -203,12 +352,13 @@ const Result = ({ artistQuery }: Props) => {
                   />
                   Only songs by {artistData.name}
                 </label>
-              </div>
-            )}
+              )}
+            </div>
 
             <Tracks
-              tracks={filteredTracks}
-              links={artistData?.tracks}
+              sections={sections}
+              totalShows={data.totalSetLists}
+              links={links}
               palette={artistData?.palette}
             />
           </>
