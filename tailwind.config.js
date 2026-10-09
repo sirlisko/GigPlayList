@@ -5,10 +5,10 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        stage: "#16193F",
+        stage: "#252320",
         paper: "#F3F4F0",
         ink: "#232129",
-        tape: "#2E2E2E",
+        tape: "#FF3D8B",
         highlighter: "#F2E35C",
         spotify: "#1ED760",
       },
