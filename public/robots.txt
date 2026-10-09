@@ -3,4 +3,5 @@ Sitemap: https://gigplaylist.sirlisko.com/sitemap.xml
 User-agent: *
 Allow: /*
 
+Allow: /api/og
 Disallow: /api/*

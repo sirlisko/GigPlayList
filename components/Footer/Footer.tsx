@@ -3,56 +3,33 @@ import React from "react";
 
 interface FooterProps {
   className?: string;
-  showCredits?: boolean;
 }
 
-const Footer = ({ className, showCredits }: FooterProps) => (
+const ExternalLink = ({
+  href,
+  children,
+}: React.PropsWithChildren<{ href: string }>) => (
+  <a
+    className="underline"
+    href={href}
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    {children}
+  </a>
+);
+
+const Footer = ({ className }: FooterProps) => (
   <footer
     className={classNames(
-      "text-sm text-white/60 pb-4 pt-10 text-center whitespace-nowrap",
+      "pb-4 pt-10 text-center text-sm text-white/60",
       className,
     )}
   >
     <p>
-      <span className="block sm:inline">
-        Created with ❤ by{" "}
-        <a
-          className="underline"
-          href="https://sirlisko.com"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          sirlisko
-        </a>
-        .
-      </span>
-      {showCredits && (
-        <span>
-          {" "}
-          Thanks to{" "}
-          <a
-            className="underline"
-            href="https://setlist.fm"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            setlist.fm
-          </a>{" "}
-          API.
-        </span>
-      )}{" "}
-      <span className="block sm:inline">
-        View project source on{" "}
-        <a
-          className="underline"
-          href="https://github.com/sirLisko/GigPlayList"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          github
-        </a>
-        .
-      </span>
+      Made by <ExternalLink href="https://sirlisko.com">sirlisko</ExternalLink>.
+      Setlists from{" "}
+      <ExternalLink href="https://setlist.fm">setlist.fm</ExternalLink>.
     </p>
   </footer>
 );
