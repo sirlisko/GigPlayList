@@ -20,7 +20,7 @@ export default async (req: NextApiRequest, res: NextApiResponse<Event[]>) => {
   }
   try {
     const events = await getArtistEvent(artistName, clientIp);
-    res.status(HttpStatusCode.Ok).json(events);
+    res.status(HttpStatusCode.Ok).json(events ?? []);
   } catch (e) {
     const upstream = axios.isAxiosError<{ code?: number; message?: string }>(e)
       ? e.response?.data
