@@ -181,6 +181,7 @@ const Result = ({ artistQuery }: Props) => {
       id: "encore",
       heading: <SectionHeading>Encore</SectionHeading>,
       tracks: view.encore,
+      isEncore: true,
     },
     {
       id: "extras",

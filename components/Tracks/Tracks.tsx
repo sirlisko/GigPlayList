@@ -3,6 +3,7 @@ import React, { ReactNode, useEffect, useState } from "react";
 import { Track, Link, ArtistData, Show } from "types";
 import { resolveTrack } from "utils/matchSongs";
 import { sanitiseDate } from "utils/labels";
+import { readableUnderWhite, Rgb } from "utils/colors";
 
 import { Disc3 as Disc, X } from "lucide-react";
 import SpotifyLogo from "components/Icons/Spotify";
@@ -14,6 +15,8 @@ export interface TrackSection {
   id: string;
   heading?: ReactNode;
   tracks: Track[];
+  // The heading already says it, so rows skip their own encore tag.
+  isEncore?: boolean;
 }
 
 interface TracksProps {
@@ -22,6 +25,8 @@ interface TracksProps {
   links?: Link[];
   palette?: ArtistData["palette"];
 }
+
+const BAR_ALPHA = 0.55;
 
 const Tracks = ({ sections, totalShows, links, palette }: TracksProps) => {
   const [loaded, setLoaded] = useState(false);
@@ -87,10 +92,15 @@ const Tracks = ({ sections, totalShows, links, palette }: TracksProps) => {
 
   const vibrantRgb = palette?.Vibrant?.rgb ?? [255, 255, 255];
   const darkVibrantRgb = palette?.DarkVibrant?.rgb ?? [0, 0, 0];
+  const barRgb = readableUnderWhite(
+    vibrantRgb as Rgb,
+    BAR_ALPHA,
+    darkVibrantRgb as Rgb,
+  );
 
   const getBarStyle = (count: number) => ({
     width: loaded ? `${(count / totalShows) * 100}%` : 0,
-    background: `rgba(${vibrantRgb.join(",")}, 0.55)`,
+    background: `rgba(${barRgb.join(",")}, ${BAR_ALPHA})`,
   });
 
   const customStyle = {
@@ -99,7 +109,7 @@ const Tracks = ({ sections, totalShows, links, palette }: TracksProps) => {
 
   return (
     <>
-      {sections.map(({ id, heading, tracks }) => (
+      {sections.map(({ id, heading, tracks, isEncore: isEncoreSection }) => (
         <section key={id} className="mb-6">
           {heading}
           <ul role="list" className="space-y-2">
@@ -172,7 +182,7 @@ const Tracks = ({ sections, totalShows, links, palette }: TracksProps) => {
                           (cover of <span className="italic">{cover}</span>)
                         </span>
                       )}
-                      {isEncore && (
+                      {isEncore && !isEncoreSection && (
                         <span className="md:ml-1 text-sm opacity-75">
                           (encore)
                         </span>
