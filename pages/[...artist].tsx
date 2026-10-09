@@ -13,7 +13,10 @@ const ResultPage = () => {
   const router = useRouter();
   const artist = router.query.artist as string[] | undefined;
 
-  const { isLoading: isLoadingArtist } = useArtistData(artist?.[0]);
+  const { isLoading: isLoadingArtist } = useArtistData(
+    artist?.[0],
+    artist?.[1],
+  );
   const { isLoading: isLoadingTracks } = useTracks(artist?.[0], artist?.[1]);
   const isLoading = isLoadingArtist || isLoadingTracks;
   const showAlternate = isLoading || !artist;
