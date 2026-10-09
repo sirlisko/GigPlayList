@@ -115,16 +115,12 @@ export const pickOriginal = (
 
 const findTrack = async (title: string, artist: string) => {
   const quote = (value: string) => `"${value.replace(/"/g, "")}"`;
-  try {
-    const { body } = await spotifyApi.searchTracks(
-      `track:${quote(title)} artist:${quote(artist)}`,
-      { limit: 10 },
-    );
-    const match = pickOriginal(body.tracks?.items ?? [], title, artist);
-    return match && toLink(match);
-  } catch {
-    return undefined;
-  }
+  const { body } = await spotifyApi.searchTracks(
+    `track:${quote(title)} artist:${quote(artist)}`,
+    { limit: 10 },
+  );
+  const match = pickOriginal(body.tracks?.items ?? [], title, artist);
+  return match && toLink(match);
 };
 
 export const attachCoverOriginals = async (tracks: Track[]) => {
@@ -138,7 +134,10 @@ export const attachCoverOriginals = async (tracks: Track[]) => {
     await Promise.all(
       covers.map(
         async ({ title, cover }) =>
-          [title, await findTrack(title, cover as string)] as const,
+          [
+            title,
+            await findTrack(title, cover as string).catch(() => undefined),
+          ] as const,
       ),
     ),
   );
@@ -156,8 +155,14 @@ export const findArtistTracks = async (
   titles: string[],
 ) => {
   await authenticate();
-  const links = await Promise.all(
+  const results = await Promise.allSettled(
     titles.map((title) => findTrack(title, artistName)),
   );
-  return links.filter((link): link is Link => Boolean(link));
+  return {
+    links: results.flatMap((result) =>
+      result.status === "fulfilled" && result.value ? [result.value] : [],
+    ),
+    // A rate-limited search isn't a "no match", so it mustn't be cached as one.
+    complete: results.every(({ status }) => status === "fulfilled"),
+  };
 };

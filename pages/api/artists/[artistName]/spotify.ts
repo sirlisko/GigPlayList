@@ -2,6 +2,7 @@ import { HttpStatusCode } from "axios";
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import { getArtistTracks } from "server/apis/spotify";
+import { CACHE, cachePublicly } from "server/cache";
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
   const { artistName, mbid } = req.query as {
@@ -13,6 +14,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
   }
   try {
     const artistData = await getArtistTracks(artistName, mbid);
+    cachePublicly(res, CACHE.spotify);
     res.status(HttpStatusCode.Ok).json(artistData);
   } catch (e) {
     const err = e as {

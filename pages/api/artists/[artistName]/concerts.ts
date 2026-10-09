@@ -20,6 +20,8 @@ export default async (req: NextApiRequest, res: NextApiResponse<Event[]>) => {
   }
   try {
     const events = await getArtistEvent(artistName, clientIp);
+    // Results depend on the visitor's location, so never share them.
+    res.setHeader("Cache-Control", "private, max-age=3600");
     res.status(HttpStatusCode.Ok).json(events ?? []);
   } catch (e) {
     const upstream = axios.isAxiosError<{ code?: number; message?: string }>(e)

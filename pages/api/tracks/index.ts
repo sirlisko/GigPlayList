@@ -1,6 +1,7 @@
 import { getArtistSetlist } from "server/apis/setlistFm";
 import { attachCoverOriginals } from "server/apis/spotify";
 import { getAggregatedSetlists } from "server/setlists";
+import { CACHE, cachePublicly } from "server/cache";
 
 import type { NextApiRequest, NextApiResponse } from "next";
 import axios, { HttpStatusCode } from "axios";
@@ -19,6 +20,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     const tracks = await attachCoverOriginals(aggregated.tracks).catch(
       () => aggregated.tracks,
     );
+    cachePublicly(res, CACHE.setlists);
     res.status(HttpStatusCode.Ok).json({ ...aggregated, tracks });
   } catch (e) {
     const upstream = axios.isAxiosError<{ code?: number; message?: string }>(e)

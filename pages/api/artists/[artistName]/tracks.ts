@@ -2,6 +2,7 @@ import { HttpStatusCode } from "axios";
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import { findArtistTracks } from "server/apis/spotify";
+import { CACHE, cachePublicly } from "server/cache";
 
 import { Link } from "types";
 
@@ -18,9 +19,11 @@ export default async (req: NextApiRequest, res: NextApiResponse<Link[]>) => {
     return res.status(HttpStatusCode.BadRequest).end();
   }
   try {
-    res
-      .status(HttpStatusCode.Ok)
-      .json(await findArtistTracks(artistName, titles));
+    const { links, complete } = await findArtistTracks(artistName, titles);
+    if (complete) {
+      cachePublicly(res, CACHE.spotify);
+    }
+    res.status(HttpStatusCode.Ok).json(links);
   } catch {
     res.status(HttpStatusCode.InternalServerError).end();
   }
