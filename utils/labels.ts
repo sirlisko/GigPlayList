@@ -52,3 +52,7 @@ export const describeEncores = (data: SetList) => {
 
   return encoreLabels.join(", ");
 };
+
+// Tour names often end in "Tour" already.
+export const tourName = (tour: string) =>
+  /\btour\b/i.test(tour) ? tour : `${tour} tour`;

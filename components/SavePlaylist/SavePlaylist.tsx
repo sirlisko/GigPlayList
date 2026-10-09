@@ -216,7 +216,7 @@ const SavePlaylist = ({
   }`;
 
   return (
-    <div className="sticky bottom-0 z-30 border-t border-white/10 bg-black/70 backdrop-blur-md">
+    <div className="border-t border-white/10 bg-black/70 backdrop-blur-md">
       <div className="mx-auto flex max-w-2xl items-center gap-4 px-4 py-3 sm:px-6">
         <div className="min-w-0 flex-1 text-sm">
           <p className="font-semibold">{summary}</p>
@@ -242,6 +242,7 @@ const SavePlaylist = ({
           <label className="mt-1 inline-flex cursor-pointer items-center gap-2 text-xs text-white/70">
             <input
               type="checkbox"
+              className="checkbox"
               checked={isPrivate}
               disabled={loading}
               onChange={(e) => changePrivacy(e.target.checked)}
