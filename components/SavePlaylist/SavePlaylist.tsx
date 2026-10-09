@@ -6,10 +6,12 @@ import { useAuth } from "components/UserContext/UserContext";
 import LoginBanner, {
   SAVE_AFTER_LOGIN_STORAGE_KEY,
 } from "components/LoginBanner/LoginBanner";
-import { ArtistData, Link } from "types";
+import { ArtistData, Event, Link } from "types";
+import { formatGigDate } from "utils/labels";
 import { CassetteTape, CircleCheckBig } from "lucide-react";
 
 interface SavePlaylistProps {
+  gig?: Event;
   artistData: ArtistData;
   songs: Link[];
   // False while songs may still change, so a resumed save doesn't go early.
@@ -81,17 +83,26 @@ const addTracksInChunks = (
     Promise.resolve(),
   );
 
+const playlistTitle = (artist: string, gig?: Event) =>
+  gig
+    ? `${artist} at ${gig.venueName}, ${formatGigDate(gig.date)} - GigPlayList`
+    : `${artist} - GigPlayList`;
+
 const SavePlaylist = ({
+  gig,
   artistData: { name },
   songs,
   ready = true,
 }: SavePlaylistProps) => {
   const [loading, setLoading] = useState(false);
-  const [saved, setSaved] = useState(() =>
-    typeof window !== "undefined" ? readSavedPlaylist(name) : null,
-  );
+  const [saved, setSaved] = useState<SavedPlaylist | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { user, logout } = useAuth();
+  const playlistName = playlistTitle(name, gig);
+
+  useEffect(() => {
+    setSaved(readSavedPlaylist(playlistName));
+  }, [playlistName]);
   const { asPath } = useRouter();
   const uris = songs.map((song) => song.uri);
   const isUpToDate = saved?.uris === uris.join(",");
@@ -104,7 +115,6 @@ const SavePlaylist = ({
       const spotify = new Spotify();
       spotify.setAccessToken(user.accessToken);
 
-      const playlistName = `${name} - GigPlayList`;
       const uriChunks = chunk(uris, TRACKS_PER_REQUEST);
 
       const existingPlaylist = await findExistingPlaylist(
@@ -138,7 +148,7 @@ const SavePlaylist = ({
 
       const savedPlaylist = { url, uris: uris.join(",") };
       sessionStorage.setItem(
-        createdSessionKey(name),
+        createdSessionKey(playlistName),
         JSON.stringify(savedPlaylist),
       );
       setSaved(savedPlaylist);

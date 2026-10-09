@@ -1,14 +1,18 @@
 import React from "react";
+import classNames from "classnames";
 
 import { Event } from "types";
+import { parseGigDate } from "utils/labels";
 
-import { Calendar } from "lucide-react";
+import { Calendar, CircleCheck } from "lucide-react";
 
 interface EventsProps {
   events: Event[];
+  selectedGig?: string;
+  onSelectGig: (id?: string) => void;
 }
 
-const Events = ({ events }: EventsProps) => {
+const Events = ({ events, selectedGig, onSelectGig }: EventsProps) => {
   if (events.length === 0) {
     return null;
   }
@@ -19,10 +23,17 @@ const Events = ({ events }: EventsProps) => {
         {events.length === 1 ? "Next Gig" : `Upcoming Gigs (${events.length})`}
       </h2>
       <ul role="list" className="space-y-1 max-h-48 overflow-y-auto">
-        {events.map(({ date, venueName, location, buyUrl }) => {
-          const eventDate = new Date(date);
+        {events.map(({ id, date, venueName, location, buyUrl }) => {
+          const eventDate = parseGigDate(date);
+          const isSelected = id === selectedGig;
           return (
-            <li key={buyUrl}>
+            <li
+              key={id}
+              className={classNames(
+                "flex items-center justify-between gap-2 rounded",
+                { "bg-white bg-opacity-10": isSelected },
+              )}
+            >
               <a
                 href={buyUrl}
                 target="_blank"
@@ -35,6 +46,20 @@ const Events = ({ events }: EventsProps) => {
                   {eventDate.getDate()} - {venueName}, {location}
                 </span>
               </a>
+              <button
+                type="button"
+                aria-pressed={isSelected}
+                onClick={() => onSelectGig(isSelected ? undefined : id)}
+                className={classNames(
+                  "shrink-0 flex items-center gap-1 rounded-full px-3 py-1 text-sm transition-colors",
+                  isSelected
+                    ? "bg-white text-black"
+                    : "border border-white/40 hover:bg-white/10",
+                )}
+              >
+                {isSelected && <CircleCheck size={14} />}
+                {isSelected ? "Going" : "I'm going"}
+              </button>
             </li>
           );
         })}

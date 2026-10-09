@@ -21,6 +21,8 @@ export const useViewParams = () => {
   return {
     tour: typeof query.tour === "string" ? query.tour : undefined,
     setTour: (tour?: string) => setParam("tour", tour),
+    gig: typeof query.gig === "string" ? query.gig : undefined,
+    setGig: (gig?: string) => setParam("gig", gig),
     order: (query.order === "played" ? "played" : "running") as Order,
     includeExtras: query.extras === "1",
     hideCovers: query.covers === "0",

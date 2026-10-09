@@ -8,6 +8,18 @@ export const sanitiseDate = (dateString: string | null) => {
   return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
 };
 
+// A bare "2026-10-14" parses as UTC midnight, which is the day before
+// anywhere west of Greenwich.
+export const parseGigDate = (date: string) =>
+  new Date(/^\d{4}-\d{2}-\d{2}$/.test(date) ? `${date}T00:00` : date);
+
+export const formatGigDate = (date: string) =>
+  parseGigDate(date).toLocaleDateString("en-gb", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
 export const calculatePlaylistDuration = (songs: LinkType[]) => {
   if (!songs.length) return 0;
   return duration(

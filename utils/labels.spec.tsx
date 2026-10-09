@@ -2,6 +2,7 @@ import { Link, SetList } from "types";
 import {
   sanitiseDate,
   calculatePlaylistDuration,
+  formatGigDate,
   generateEncoreLabel,
 } from "./labels";
 
@@ -82,5 +83,11 @@ describe("generateEncoreLabel", () => {
     );
 
     expect(result).toEqual(expectedLabel);
+  });
+});
+
+describe("formatGigDate", () => {
+  it("should keep a date-only gig on its own day", () => {
+    expect(formatGigDate("2026-10-14")).toBe("14 Oct 2026");
   });
 });

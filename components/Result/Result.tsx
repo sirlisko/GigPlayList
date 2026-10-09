@@ -53,6 +53,8 @@ const SectionHeading = ({
 const Result = ({ artistQuery }: Props) => {
   const [initialBaground] = useState<string>(document.body.style.background);
   const {
+    gig,
+    setGig,
     tour,
     setTour,
     order,
@@ -212,7 +214,9 @@ const Result = ({ artistQuery }: Props) => {
               />
             </picture>
 
-            {events && <Events events={events} />}
+            {events && (
+              <Events events={events} selectedGig={gig} onSelectGig={setGig} />
+            )}
 
             {artist?.["life-span"].ended && (
               <div className="bg-black bg-opacity-30 rounded-lg p-4 mb-6">
@@ -287,6 +291,7 @@ const Result = ({ artistQuery }: Props) => {
                   </div>
                 </div>
                 <SavePlaylist
+                  gig={events?.find(({ id }) => id === gig)}
                   artistData={artistData}
                   songs={songs}
                   ready={!isLoadingMissingTracks}
