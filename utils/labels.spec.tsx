@@ -57,8 +57,8 @@ describe("generateEncoreLabel", () => {
     const result = generateEncoreLabel(data);
     const expectedLabel = (
       <>
-        <strong>Encore likelihood: </strong>
-        60% chance of one, 30% chance of two
+        <strong>Encores: </strong>
+        60% of shows had an encore, 30% a second
       </>
     );
 
@@ -76,8 +76,8 @@ describe("generateEncoreLabel", () => {
     const result = generateEncoreLabel(data);
     const expectedLabel = (
       <>
-        <strong>Encore likelihood: </strong>
-        50% chance of 4
+        <strong>Encores: </strong>
+        50% of shows had a 4th encore
       </>
     );
 

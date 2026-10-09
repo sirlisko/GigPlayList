@@ -1,5 +1,3 @@
-import { JSONPath } from "jsonpath-plus";
-
 import { SetList, Show, Track } from "types";
 
 export interface Song {
@@ -157,13 +155,23 @@ export const getAggregatedSetlists = (setlists: Setlists): SetList => {
       }),
     );
 
-  const encoreCounts = JSONPath({
-    json: setlists,
-    path: "$..`@encore,encore",
-  }).reduce((acc: Record<string, number>, item: string) => {
-    acc[item] = (acc[item] || 0) + 1;
-    return acc;
-  }, {});
+  // How many shows reached each encore number, so a show with two encores
+  // counts towards both the first and the second.
+  const encoreCounts = legitSets.reduce(
+    (acc: Record<string, number>, { sets: { set } }) => {
+      const encores = new Set(
+        (Array.isArray(set) ? set : [set])
+          .map((s) => s["@encore"] ?? s.encore)
+          .filter(Boolean)
+          .map(String),
+      );
+      encores.forEach((encore) => {
+        acc[encore] = (acc[encore] || 0) + 1;
+      });
+      return acc;
+    },
+    {},
+  );
 
   return {
     tracks,

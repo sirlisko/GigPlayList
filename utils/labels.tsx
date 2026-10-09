@@ -24,19 +24,23 @@ export const generateEncoreLabel = (data: SetList) => {
     return null;
   }
 
-  const numberToWord = (n: number) => {
-    const words = ["zero", "one", "two", "three"];
-    return words[n] || n.toString();
-  };
+  const ordinal = (n: number) =>
+    ["", "first", "second", "third"][n] ?? `${n}th`;
 
-  const encoreLabels = Object.entries(encores).map(([encoreNumber, count]) => {
-    const probability = ((count / totalSetLists) * 100).toFixed(0);
-    return `${probability}% chance of ${numberToWord(parseInt(encoreNumber))}`;
-  });
+  const encoreLabels = Object.entries(encores)
+    .sort(([a], [b]) => parseInt(a) - parseInt(b))
+    .map(([encoreNumber, count], index) => {
+      const n = parseInt(encoreNumber);
+      const share = `${((count / totalSetLists) * 100).toFixed(0)}%`;
+      const encore = n === 1 ? "an encore" : `a ${ordinal(n)} encore`;
+      return index === 0
+        ? `${share} of shows had ${encore}`
+        : `${share} ${n === 1 ? encore : `a ${ordinal(n)}`}`;
+    });
 
   return (
     <>
-      <strong>Encore likelihood: </strong>
+      <strong>Encores: </strong>
       {encoreLabels.join(", ")}
     </>
   );
