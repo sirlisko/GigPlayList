@@ -7,9 +7,7 @@ import {
   useEffect,
 } from "react";
 
-export interface AuthUser {
-  access_token: string;
-}
+import { refreshAccessToken, TokenSet } from "utils/spotifyAuth";
 
 interface SpotifyUser {
   id: string;
@@ -17,6 +15,7 @@ interface SpotifyUser {
 
 interface User {
   accessToken: string;
+  refreshToken?: string;
   user: SpotifyUser;
   expires: Date;
 }
@@ -25,46 +24,94 @@ interface Props {
   children: ReactNode;
 }
 
+const STORAGE_KEY = "spotAuth";
+// Refresh a little early so a save never starts with a token about to lapse.
+const EXPIRY_MARGIN_MS = 60 * 1000;
+
+const toUser = (
+  { access_token, refresh_token, expires_in = 3600 }: TokenSet,
+  user: SpotifyUser,
+  previousRefreshToken?: string,
+): User => ({
+  accessToken: access_token,
+  // Spotify doesn't always rotate the refresh token.
+  refreshToken: refresh_token ?? previousRefreshToken,
+  user,
+  expires: new Date(Date.now() + expires_in * 1000),
+});
+
+const isFresh = ({ expires }: User) =>
+  new Date(expires).getTime() - EXPIRY_MARGIN_MS > Date.now();
+
 export const UserContext = createContext<{
   user?: User;
-  setUser?: (arg: AuthUser, user: SpotifyUser) => void;
+  setUser?: (token: TokenSet, user: SpotifyUser) => void;
+  getAccessToken?: () => Promise<string | undefined>;
   logout?: () => void;
 }>({});
 
 export const AuthProvider = ({ children }: Props): ReactElement => {
   const [user, setUser] = useState<User>();
-  const persistUser = ({ access_token }: AuthUser, user: SpotifyUser) => {
-    const now = new Date();
-    const auth: User = {
-      accessToken: access_token,
-      user,
-      expires: new Date(now.setHours(now.getHours() + 1)),
-    };
+  const persist = (auth: User) => {
     setUser(auth);
-    localStorage.setItem("spotAuth", JSON.stringify(auth));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(auth));
   };
   const logout = () => {
     setUser(undefined);
-    localStorage.removeItem("spotAuth");
+    localStorage.removeItem(STORAGE_KEY);
+  };
+  const refresh = async (current: User) => {
+    if (!current.refreshToken) {
+      return undefined;
+    }
+    const token = await refreshAccessToken(current.refreshToken).catch(
+      () => undefined,
+    );
+    if (!token) {
+      return undefined;
+    }
+    const next = toUser(token, current.user, current.refreshToken);
+    persist(next);
+    return next;
+  };
+  const getAccessToken = async () => {
+    if (!user) {
+      return undefined;
+    }
+    if (isFresh(user)) {
+      return user.accessToken;
+    }
+    const next = await refresh(user);
+    if (!next) {
+      logout();
+    }
+    return next?.accessToken;
   };
   useEffect(() => {
     try {
-      const persistedAuth = localStorage.getItem("spotAuth");
+      const persistedAuth = localStorage.getItem(STORAGE_KEY);
       if (persistedAuth) {
-        const auth = JSON.parse(persistedAuth);
-        if (new Date(auth.expires).getTime() > new Date().getTime()) {
+        const auth: User = JSON.parse(persistedAuth);
+        if (isFresh(auth)) {
           setUser(auth);
+        } else {
+          refresh(auth).then((next) => {
+            if (!next) {
+              localStorage.removeItem(STORAGE_KEY);
+            }
+          });
         }
       }
     } catch {
-      localStorage.removeItem("spotAuth");
+      localStorage.removeItem(STORAGE_KEY);
     }
   }, []);
   return (
     <UserContext.Provider
       value={{
         user,
-        setUser: persistUser,
+        setUser: (token, spotifyUser) => persist(toUser(token, spotifyUser)),
+        getAccessToken,
         logout,
       }}
     >

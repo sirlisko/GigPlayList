@@ -1,40 +1,13 @@
 import React, { useEffect } from "react";
 import { useRouter } from "next/router";
 import Spotify from "spotify-web-api-js";
-import { AuthUser, useAuth } from "components/UserContext/UserContext";
+import { useAuth } from "components/UserContext/UserContext";
+import { exchangeCodeForToken } from "utils/spotifyAuth";
 import { Audio as Loader } from "react-loader-spinner";
 import LoginBanner from "components/LoginBanner/LoginBanner";
-import { CODE_VERIFIER_STORAGE_KEY } from "components/LoginBanner/LoginBanner";
 import Link from "next/link";
 import { ArrowLeft, Frown } from "lucide-react";
 import Head from "components/Head/Head";
-
-export const exchangeCodeForToken = async (
-  code: string,
-): Promise<AuthUser | undefined> => {
-  const codeVerifier = sessionStorage.getItem(CODE_VERIFIER_STORAGE_KEY);
-  if (!codeVerifier) {
-    return undefined;
-  }
-  sessionStorage.removeItem(CODE_VERIFIER_STORAGE_KEY);
-  const redirectUri = `${window.location.protocol}//${window.location.host}/auth`;
-  const response = await fetch("https://accounts.spotify.com/api/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID ?? "",
-      grant_type: "authorization_code",
-      code,
-      redirect_uri: redirectUri,
-      code_verifier: codeVerifier,
-    }),
-  });
-  if (!response.ok) {
-    return undefined;
-  }
-  const { access_token } = await response.json();
-  return access_token ? { access_token } : undefined;
-};
 
 const Home = () => {
   const { isReady, push, query } = useRouter();
@@ -70,14 +43,9 @@ const Home = () => {
           <div style={{ margin: "2rem" }}>
             <LoginBanner />
           </div>
-          <Link href="/" passHref>
-            <button
-              className="text-white hover:text-gray-300 flex"
-              aria-label="Go to homepage"
-            >
-              <ArrowLeft size={24} className="mr-3" />
-              Go back to the Home
-            </button>
+          <Link href="/" className="text-white hover:text-gray-300 flex">
+            <ArrowLeft size={24} className="mr-3" />
+            Go back to the Home
           </Link>
         </div>
       ) : (

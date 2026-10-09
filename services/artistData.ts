@@ -1,10 +1,11 @@
 import useSWR from "swr";
 import { ArtistData } from "types";
 import { fetcher } from "utils/api";
+import { artistDataKey } from "services/keys";
 
-export const useArtistData = (artist: string | undefined) => {
+export const useArtistData = (artist: string | undefined, mbid?: string) => {
   const { data, error, isLoading, mutate } = useSWR(
-    artist ? `/api/artists/${encodeURIComponent(artist)}/spotify` : null,
+    artistDataKey(artist, mbid),
     fetcher<ArtistData>,
     {
       revalidateOnFocus: false,
@@ -15,7 +16,9 @@ export const useArtistData = (artist: string | undefined) => {
 
   return {
     artistData: data,
-    isLoading,
+    // Server-rendered data arrives as SWR fallback, which still counts as
+    // loading until the first revalidation; it is ready to show already.
+    isLoading: isLoading && !data,
     isError: error,
     retry: mutate,
   };

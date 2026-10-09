@@ -4,6 +4,7 @@ import { HttpStatusCode } from "axios";
 
 import { Link, Track } from "types";
 import { isSameSong, normalizeSong } from "utils/matchSongs";
+import { getSpotifyArtistId } from "server/apis/musicbrainz";
 
 const { NEXT_PUBLIC_SPOTIFY_CLIENT_ID, SPOTIFY_SECRET } = process.env;
 
@@ -19,12 +20,25 @@ const authenticate = async () => {
   spotifyApi.setAccessToken(access_token);
 };
 
-const getArtistInfo = async (artistName: string) => {
+const findArtist = async (artistName: string, spotifyId?: string) => {
+  if (spotifyId) {
+    try {
+      const { body } = await spotifyApi.getArtist(spotifyId);
+      return body;
+    } catch {
+      // A stale MusicBrainz link shouldn't hide an artist a search can find.
+    }
+  }
   const { body } = await spotifyApi.searchArtists(artistName);
-  const artist =
+  return (
     body.artists?.items.find(
       ({ name }) => name.toLowerCase() === artistName.toLocaleLowerCase(),
-    ) || body.artists?.items[0];
+    ) || body.artists?.items[0]
+  );
+};
+
+const getArtistInfo = async (artistName: string, spotifyId?: string) => {
+  const artist = await findArtist(artistName, spotifyId);
   const image = artist?.images[0]?.url;
   const palette = image && (await Vibrant.from(image).getPalette());
   if (!artist) {
@@ -40,28 +54,35 @@ const getArtistInfo = async (artistName: string) => {
   };
 };
 
-const getSongs = async (artistName: string, offset = 0) => {
+const getSongs = async (artistName: string, offset = 0, spotifyId?: string) => {
   const { body } = await spotifyApi.searchTracks(`artist:${artistName}`, {
     limit: 50,
     offset,
   });
 
-  return body?.tracks?.items?.map((track) => ({
-    title: track.name.toLowerCase(),
-    uri: track.uri,
-    cover: track.album.images[2]?.url ?? track.album.images[0]?.url,
-    previewUrl: track.preview_url,
-    duration_ms: track.duration_ms,
-  }));
+  return body?.tracks?.items
+    ?.filter(
+      (track) => !spotifyId || track.artists.some(({ id }) => id === spotifyId),
+    )
+    .map((track) => ({
+      title: track.name.toLowerCase(),
+      uri: track.uri,
+      cover: track.album.images[2]?.url ?? track.album.images[0]?.url,
+      previewUrl: track.preview_url,
+      duration_ms: track.duration_ms,
+    }));
 };
 
-export const getArtistTracks = async (artistName: string) => {
-  await authenticate();
+export const getArtistTracks = async (artistName: string, mbid?: string) => {
+  const [spotifyId] = await Promise.all([
+    mbid ? getSpotifyArtistId(mbid) : undefined,
+    authenticate(),
+  ]);
 
   const batch = await Promise.all([
-    getSongs(artistName, 0),
-    getSongs(artistName, 50),
-    getArtistInfo(artistName),
+    getSongs(artistName, 0, spotifyId),
+    getSongs(artistName, 50, spotifyId),
+    getArtistInfo(artistName, spotifyId),
   ]);
   return {
     ...batch[2],
@@ -92,18 +113,14 @@ export const pickOriginal = (
       ),
   );
 
-const findOriginal = async (title: string, originalArtist: string) => {
+const findTrack = async (title: string, artist: string) => {
   const quote = (value: string) => `"${value.replace(/"/g, "")}"`;
-  try {
-    const { body } = await spotifyApi.searchTracks(
-      `track:${quote(title)} artist:${quote(originalArtist)}`,
-      { limit: 10 },
-    );
-    const match = pickOriginal(body.tracks?.items ?? [], title, originalArtist);
-    return match && toLink(match);
-  } catch {
-    return undefined;
-  }
+  const { body } = await spotifyApi.searchTracks(
+    `track:${quote(title)} artist:${quote(artist)}`,
+    { limit: 10 },
+  );
+  const match = pickOriginal(body.tracks?.items ?? [], title, artist);
+  return match && toLink(match);
 };
 
 export const attachCoverOriginals = async (tracks: Track[]) => {
@@ -117,7 +134,10 @@ export const attachCoverOriginals = async (tracks: Track[]) => {
     await Promise.all(
       covers.map(
         async ({ title, cover }) =>
-          [title, await findOriginal(title, cover as string)] as const,
+          [
+            title,
+            await findTrack(title, cover as string).catch(() => undefined),
+          ] as const,
       ),
     ),
   );
@@ -126,4 +146,23 @@ export const attachCoverOriginals = async (tracks: Track[]) => {
     const original = originals.get(track.title);
     return original ? { ...track, original } : track;
   });
+};
+
+// The artist-wide search only returns 100 tracks, which misses deep cuts of
+// artists with large catalogues.
+export const findArtistTracks = async (
+  artistName: string,
+  titles: string[],
+) => {
+  await authenticate();
+  const results = await Promise.allSettled(
+    titles.map((title) => findTrack(title, artistName)),
+  );
+  return {
+    links: results.flatMap((result) =>
+      result.status === "fulfilled" && result.value ? [result.value] : [],
+    ),
+    // A rate-limited search isn't a "no match", so it mustn't be cached as one.
+    complete: results.every(({ status }) => status === "fulfilled"),
+  };
 };

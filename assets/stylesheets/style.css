@@ -3,33 +3,50 @@
 @tailwind utilities;
 
 body {
-  background-color: #3b82f6;
+  @apply bg-stage text-white font-sans antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid #f2e35c;
+  outline-offset: 2px;
 }
 
 @layer components {
+  /* Pages without an artist yet: the stage before the lights pick a colour. */
   .background {
-    @apply main-c min-h-screen sm:bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 flex flex-col items-center justify-center p-6 text-white;
+    @apply min-h-screen flex flex-col items-center justify-center p-6 text-white bg-stage;
+    background-image: radial-gradient(
+      ellipse 80% 60% at 50% -10%,
+      rgba(120, 130, 255, 0.35),
+      transparent
+    );
+  }
+
+  .display {
+    font-stretch: 62%;
+    @apply font-extrabold tracking-[-0.01em] leading-[0.92];
+    word-spacing: 0.04em;
+  }
+
+  /* The setlist sheet taped to the stage floor. */
+  .sheet {
+    @apply relative bg-paper text-ink rounded-sm shadow-2xl;
+    box-shadow:
+      0 1px 0 rgba(0, 0, 0, 0.08),
+      0 24px 48px -12px rgba(0, 0, 0, 0.55);
+  }
+
+  .tape {
+    @apply absolute h-7 w-24 bg-tape/90;
+    top: -0.75rem;
   }
 }
 
-.main-c::after {
-  content: "";
-  display: block;
-  position: absolute;
-  background-image: url(../concert.webp);
-  background-size: cover;
-  background-position: center;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 0;
-  opacity: 0.03;
-  filter: blur(3px);
-  pointer-events: none;
-}
-@media screen and (max-width: 768px) {
-  .main-c::after {
-    display: none;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
   }
 }

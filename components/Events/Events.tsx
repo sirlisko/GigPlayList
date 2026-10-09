@@ -1,45 +1,87 @@
-import React from "react";
+import React, { useState } from "react";
+import classNames from "classnames";
+import { CircleCheck } from "lucide-react";
 
 import { Event } from "types";
-
-import { Calendar } from "lucide-react";
+import { parseGigDate } from "utils/labels";
 
 interface EventsProps {
   events: Event[];
+  selectedGig?: string;
+  onSelectGig: (id?: string) => void;
 }
 
-const Events = ({ events }: EventsProps) => {
+const COLLAPSED_COUNT = 3;
+
+const Events = ({ events, selectedGig, onSelectGig }: EventsProps) => {
+  const [expanded, setExpanded] = useState(false);
   if (events.length === 0) {
     return null;
   }
 
+  const visible = expanded ? events : events.slice(0, COLLAPSED_COUNT);
+
   return (
-    <div className="bg-black bg-opacity-30 rounded-lg py-4 px-3 mb-6">
-      <h2 className="text-xl font-semibold mb-2 px-1">
-        {events.length === 1 ? "Next Gig" : `Upcoming Gigs (${events.length})`}
-      </h2>
-      <ul role="list" className="space-y-1 max-h-48 overflow-y-auto">
-        {events.map(({ date, venueName, location, buyUrl }) => {
-          const eventDate = new Date(date);
+    <section className="mt-10">
+      <h2 className="text-lg font-semibold">Upcoming near you</h2>
+      <p className="text-sm text-white/70">
+        Going to one? Name the playlist after it.
+      </p>
+      <ul role="list" className="mt-3 divide-y divide-white/10">
+        {visible.map(({ id, date, venueName, location, buyUrl }) => {
+          const eventDate = parseGigDate(date);
+          const isSelected = id === selectedGig;
           return (
-            <li key={buyUrl}>
+            <li key={id} className="flex items-center gap-4 py-3">
+              <div className="w-11 shrink-0 text-center leading-none">
+                <span className="display block text-3xl">
+                  {eventDate.getDate()}
+                </span>
+                <span className="text-xs text-white/70">
+                  {eventDate.toLocaleDateString("en-gb", { month: "short" })}
+                </span>
+              </div>
               <a
                 href={buyUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-2 rounded p-1 hover:bg-white hover:bg-opacity-10 transition-colors"
+                className="min-w-0 flex-1 hover:underline underline-offset-4"
               >
-                <Calendar className="shrink-0" size={18} />
-                <span>
-                  {eventDate.toLocaleDateString("en-gb", { month: "short" })}{" "}
-                  {eventDate.getDate()} - {venueName}, {location}
+                <span className="block truncate font-medium">{venueName}</span>
+                <span className="block truncate text-sm text-white/70">
+                  {location}
                 </span>
               </a>
+              <button
+                type="button"
+                aria-pressed={isSelected}
+                onClick={() => onSelectGig(isSelected ? undefined : id)}
+                className={classNames(
+                  "flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-sm transition-colors",
+                  isSelected
+                    ? "bg-white text-black"
+                    : "border border-white/40 hover:bg-white/10",
+                )}
+              >
+                {isSelected && <CircleCheck size={14} aria-hidden="true" />}
+                {isSelected ? "Going" : "I'm going"}
+              </button>
             </li>
           );
         })}
       </ul>
-    </div>
+      {events.length > COLLAPSED_COUNT && (
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          className="mt-2 text-sm text-white/80 underline underline-offset-4 hover:text-white"
+        >
+          {expanded
+            ? "Show fewer gigs"
+            : `Show ${events.length - COLLAPSED_COUNT} more gigs`}
+        </button>
+      )}
+    </section>
   );
 };
 

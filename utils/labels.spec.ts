@@ -2,7 +2,8 @@ import { Link, SetList } from "types";
 import {
   sanitiseDate,
   calculatePlaylistDuration,
-  generateEncoreLabel,
+  formatGigDate,
+  describeEncores,
 } from "./labels";
 
 describe("sanitiseDate", () => {
@@ -39,10 +40,10 @@ describe("calculatePlaylistDuration", () => {
   });
 });
 
-describe("generateEncoreLabel", () => {
+describe("describeEncores", () => {
   it("should return null if no encores are available", () => {
     const data = { totalSetLists: 10, encores: null } as unknown as SetList;
-    expect(generateEncoreLabel(data)).toBeNull();
+    expect(describeEncores(data)).toBeNull();
   });
 
   it("should generate the correct encore label", () => {
@@ -54,13 +55,8 @@ describe("generateEncoreLabel", () => {
       },
     } as unknown as SetList;
 
-    const result = generateEncoreLabel(data);
-    const expectedLabel = (
-      <>
-        <strong>Encore likelihood: </strong>
-        60% chance of one, 30% chance of two
-      </>
-    );
+    const result = describeEncores(data);
+    const expectedLabel = "60% of shows had an encore, 30% a second";
 
     expect(result).toEqual(expectedLabel);
   });
@@ -73,14 +69,15 @@ describe("generateEncoreLabel", () => {
       },
     } as unknown as SetList;
 
-    const result = generateEncoreLabel(data);
-    const expectedLabel = (
-      <>
-        <strong>Encore likelihood: </strong>
-        50% chance of 4
-      </>
-    );
+    const result = describeEncores(data);
+    const expectedLabel = "50% of shows had a 4th encore";
 
     expect(result).toEqual(expectedLabel);
+  });
+});
+
+describe("formatGigDate", () => {
+  it("should keep a date-only gig on its own day", () => {
+    expect(formatGigDate("2026-10-14")).toBe("14 Oct 2026");
   });
 });

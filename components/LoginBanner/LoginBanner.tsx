@@ -2,17 +2,22 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "components/UserContext/UserContext";
 import { useRouter } from "next/router";
 import { createPkcePair } from "utils/pkce";
+import { CODE_VERIFIER_STORAGE_KEY } from "utils/spotifyAuth";
 
 import { LogIn } from "lucide-react";
 
-export const CODE_VERIFIER_STORAGE_KEY = "spotifyCodeVerifier";
+// Holds the page a save was requested from, so it can resume after login.
+export const SAVE_AFTER_LOGIN_STORAGE_KEY = "gigplaylist:saveAfterLogin";
 
 interface Props {
   onCreatePlaylist?: () => void;
-  showDesc?: boolean;
+  label?: string;
 }
 
-const LoginBanner = ({ onCreatePlaylist, showDesc }: Props) => {
+const BUTTON =
+  "flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-spotify px-5 py-2.5 font-semibold text-black transition-colors hover:bg-[#3be477]";
+
+const LoginBanner = ({ onCreatePlaylist, label }: Props) => {
   const [redirect, setRedirect] = useState<string>();
   const { user } = useAuth();
   const { isReady, asPath, push } = useRouter();
@@ -20,7 +25,13 @@ const LoginBanner = ({ onCreatePlaylist, showDesc }: Props) => {
     const authEndpoint = "https://accounts.spotify.com/authorize";
     const clientId = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID;
     const redirectUri = `${window.location.protocol}//${window.location.host}/auth`;
-    const scopes = ["playlist-modify-public"];
+    // Reading private playlists lets a private GigPlayList be found and
+    // updated next time instead of duplicated.
+    const scopes = [
+      "playlist-modify-public",
+      "playlist-modify-private",
+      "playlist-read-private",
+    ];
     createPkcePair().then(({ codeVerifier, codeChallenge }) => {
       sessionStorage.setItem(CODE_VERIFIER_STORAGE_KEY, codeVerifier);
       setRedirect(
@@ -33,6 +44,9 @@ const LoginBanner = ({ onCreatePlaylist, showDesc }: Props) => {
   const onClick = () => {
     if (redirect) {
       localStorage.setItem("redirect", asPath);
+      if (onCreatePlaylist) {
+        sessionStorage.setItem(SAVE_AFTER_LOGIN_STORAGE_KEY, asPath);
+      }
       push(redirect);
     }
   };
@@ -41,22 +55,14 @@ const LoginBanner = ({ onCreatePlaylist, showDesc }: Props) => {
       {redirect && (
         <>
           {user ? (
-            <button
-              className="w-full max-w-xs mx-auto py-3 bg-green-500 text-white rounded-full font-bold hover:bg-green-600 transition-all flex items-center justify-center"
-              onClick={onCreatePlaylist}
-            >
-              Save your playlist to Spotify
+            <button className={BUTTON} onClick={onCreatePlaylist}>
+              {label}
             </button>
           ) : (
-            <div onClick={onClick}>
-              <button className="w-full max-w-xs mx-auto p-3 bg-green-500 text-white rounded-full font-bold hover:bg-green-600 transition-all flex items-center justify-center">
-                <LogIn size={18} className="mr-2" />
-                LOGIN TO SPOTIFY
-              </button>
-              {showDesc && (
-                <p className="mt-2 text-sm opacity-75">to save your playlist</p>
-              )}
-            </div>
+            <button className={BUTTON} onClick={onClick}>
+              <LogIn size={18} aria-hidden="true" />
+              {onCreatePlaylist ? label : "Log in to Spotify"}
+            </button>
           )}
         </>
       )}
