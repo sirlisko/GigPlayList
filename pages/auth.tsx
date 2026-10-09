@@ -70,14 +70,9 @@ const Home = () => {
           <div style={{ margin: "2rem" }}>
             <LoginBanner />
           </div>
-          <Link href="/" passHref>
-            <button
-              className="text-white hover:text-gray-300 flex"
-              aria-label="Go to homepage"
-            >
-              <ArrowLeft size={24} className="mr-3" />
-              Go back to the Home
-            </button>
+          <Link href="/" className="text-white hover:text-gray-300 flex">
+            <ArrowLeft size={24} className="mr-3" />
+            Go back to the Home
           </Link>
         </div>
       ) : (

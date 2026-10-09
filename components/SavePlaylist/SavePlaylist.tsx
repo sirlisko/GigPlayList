@@ -1,14 +1,24 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import Spotify from "spotify-web-api-js";
 
 import { useAuth } from "components/UserContext/UserContext";
-import LoginBanner from "components/LoginBanner/LoginBanner";
+import LoginBanner, {
+  SAVE_AFTER_LOGIN_STORAGE_KEY,
+} from "components/LoginBanner/LoginBanner";
 import { ArtistData, Link } from "types";
 import { CassetteTape, CircleCheckBig } from "lucide-react";
 
 interface SavePlaylistProps {
   artistData: ArtistData;
   songs: Link[];
+  // False while songs may still change, so a resumed save doesn't go early.
+  ready?: boolean;
+}
+
+interface SavedPlaylist {
+  url: string;
+  uris: string;
 }
 
 const TRACKS_PER_REQUEST = 100;
@@ -25,6 +35,17 @@ const isUnauthorized = (e: unknown) =>
   typeof e === "object" && e !== null && "status" in e && e.status === 401;
 
 const createdSessionKey = (name: string) => `gigplaylist:created:${name}`;
+
+const readSavedPlaylist = (name: string): SavedPlaylist | null => {
+  try {
+    const saved = JSON.parse(
+      sessionStorage.getItem(createdSessionKey(name)) ?? "null",
+    );
+    return saved?.url && typeof saved.uris === "string" ? saved : null;
+  } catch {
+    return null;
+  }
+};
 
 const PLAYLISTS_PER_PAGE = 50;
 const MAX_PLAYLIST_PAGES = 20;
@@ -60,15 +81,21 @@ const addTracksInChunks = (
     Promise.resolve(),
   );
 
-const SavePlaylist = ({ artistData: { name }, songs }: SavePlaylistProps) => {
+const SavePlaylist = ({
+  artistData: { name },
+  songs,
+  ready = true,
+}: SavePlaylistProps) => {
   const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      sessionStorage.getItem(createdSessionKey(name)) === "true",
+  const [saved, setSaved] = useState(() =>
+    typeof window !== "undefined" ? readSavedPlaylist(name) : null,
   );
   const [error, setError] = useState<string | null>(null);
   const { user, logout } = useAuth();
+  const { asPath } = useRouter();
+  const uris = songs.map((song) => song.uri);
+  const isUpToDate = saved?.uris === uris.join(",");
+
   const savePlaylist = async () => {
     if (!user) return;
     setLoading(true);
@@ -78,10 +105,7 @@ const SavePlaylist = ({ artistData: { name }, songs }: SavePlaylistProps) => {
       spotify.setAccessToken(user.accessToken);
 
       const playlistName = `${name} - GigPlayList`;
-      const uriChunks = chunk(
-        songs.map((song) => song.uri),
-        TRACKS_PER_REQUEST,
-      );
+      const uriChunks = chunk(uris, TRACKS_PER_REQUEST);
 
       const existingPlaylist = await findExistingPlaylist(
         spotify,
@@ -89,6 +113,7 @@ const SavePlaylist = ({ artistData: { name }, songs }: SavePlaylistProps) => {
         playlistName,
       );
 
+      let url: string;
       if (existingPlaylist) {
         await spotify.replaceTracksInPlaylist(
           existingPlaylist.id,
@@ -99,6 +124,7 @@ const SavePlaylist = ({ artistData: { name }, songs }: SavePlaylistProps) => {
           existingPlaylist.id,
           uriChunks.slice(1),
         );
+        url = existingPlaylist.external_urls.spotify;
       } else {
         const playlist = await spotify.createPlaylist(user.user.id, {
           name: playlistName,
@@ -107,19 +133,31 @@ const SavePlaylist = ({ artistData: { name }, songs }: SavePlaylistProps) => {
           public: true,
         });
         await addTracksInChunks(spotify, playlist.id, uriChunks);
+        url = playlist.external_urls.spotify;
       }
 
-      sessionStorage.setItem(createdSessionKey(name), "true");
-      setDone(true);
+      const savedPlaylist = { url, uris: uris.join(",") };
+      sessionStorage.setItem(
+        createdSessionKey(name),
+        JSON.stringify(savedPlaylist),
+      );
+      setSaved(savedPlaylist);
     } catch (e) {
       if (isUnauthorized(e)) {
         logout?.();
       }
-      setError("Something went wrong saving your playlist. Please try again.");
+      setError("Your playlist wasn't saved. Try again.");
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!user || !ready || songs.length === 0) return;
+    if (sessionStorage.getItem(SAVE_AFTER_LOGIN_STORAGE_KEY) !== asPath) return;
+    sessionStorage.removeItem(SAVE_AFTER_LOGIN_STORAGE_KEY);
+    savePlaylist();
+  }, [user, ready, songs.length]);
 
   return (
     <div className="text-center mb-8">
@@ -130,15 +168,33 @@ const SavePlaylist = ({ artistData: { name }, songs }: SavePlaylistProps) => {
       )}
       {loading ? (
         <p className="m-12 text-lg font-medium flex items-center justify-center">
-          <CassetteTape className="mr-1 animate-bounce" /> Generating your
+          <CassetteTape className="mr-1 animate-bounce" /> Saving your
           playlist...
         </p>
-      ) : done ? (
-        <p className="m-12 text-lg font-medium flex items-center justify-center">
-          <CircleCheckBig className="mr-2" /> Playlist saved!
-        </p>
+      ) : saved && isUpToDate ? (
+        <div className="flex flex-col items-center gap-3">
+          <p
+            role="status"
+            className="text-lg font-medium flex items-center justify-center"
+          >
+            <CircleCheckBig className="mr-2" /> Playlist saved
+          </p>
+          <a
+            href={saved.url}
+            target="_blank"
+            rel="noreferrer"
+            className="px-6 py-2 rounded-full border border-green-400 text-white font-bold hover:bg-green-500 transition-all"
+          >
+            Open in Spotify
+          </a>
+        </div>
       ) : (
-        <LoginBanner onCreatePlaylist={savePlaylist} showDesc />
+        <LoginBanner
+          onCreatePlaylist={savePlaylist}
+          label={
+            saved ? "Update playlist on Spotify" : "Save playlist to Spotify"
+          }
+        />
       )}
     </div>
   );

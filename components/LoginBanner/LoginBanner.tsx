@@ -6,13 +6,15 @@ import { createPkcePair } from "utils/pkce";
 import { LogIn } from "lucide-react";
 
 export const CODE_VERIFIER_STORAGE_KEY = "spotifyCodeVerifier";
+// Holds the page a save was requested from, so it can resume after login.
+export const SAVE_AFTER_LOGIN_STORAGE_KEY = "gigplaylist:saveAfterLogin";
 
 interface Props {
   onCreatePlaylist?: () => void;
-  showDesc?: boolean;
+  label?: string;
 }
 
-const LoginBanner = ({ onCreatePlaylist, showDesc }: Props) => {
+const LoginBanner = ({ onCreatePlaylist, label }: Props) => {
   const [redirect, setRedirect] = useState<string>();
   const { user } = useAuth();
   const { isReady, asPath, push } = useRouter();
@@ -33,6 +35,9 @@ const LoginBanner = ({ onCreatePlaylist, showDesc }: Props) => {
   const onClick = () => {
     if (redirect) {
       localStorage.setItem("redirect", asPath);
+      if (onCreatePlaylist) {
+        sessionStorage.setItem(SAVE_AFTER_LOGIN_STORAGE_KEY, asPath);
+      }
       push(redirect);
     }
   };
@@ -45,18 +50,23 @@ const LoginBanner = ({ onCreatePlaylist, showDesc }: Props) => {
               className="w-full max-w-xs mx-auto py-3 bg-green-500 text-white rounded-full font-bold hover:bg-green-600 transition-all flex items-center justify-center"
               onClick={onCreatePlaylist}
             >
-              Save your playlist to Spotify
+              {label}
             </button>
           ) : (
-            <div onClick={onClick}>
-              <button className="w-full max-w-xs mx-auto p-3 bg-green-500 text-white rounded-full font-bold hover:bg-green-600 transition-all flex items-center justify-center">
+            <>
+              <button
+                className="w-full max-w-xs mx-auto p-3 bg-green-500 text-white rounded-full font-bold hover:bg-green-600 transition-all flex items-center justify-center"
+                onClick={onClick}
+              >
                 <LogIn size={18} className="mr-2" />
-                LOGIN TO SPOTIFY
+                {onCreatePlaylist ? label : "Log in to Spotify"}
               </button>
-              {showDesc && (
-                <p className="mt-2 text-sm opacity-75">to save your playlist</p>
+              {onCreatePlaylist && (
+                <p className="mt-2 text-sm opacity-75">
+                  You&apos;ll log in to Spotify first
+                </p>
               )}
-            </div>
+            </>
           )}
         </>
       )}
