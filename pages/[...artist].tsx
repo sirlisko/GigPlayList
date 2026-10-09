@@ -14,6 +14,7 @@ import { useViewParams } from "components/Result/useViewParams";
 import { getArtistTracks } from "server/apis/spotify";
 import { getArtistSetlistSummary } from "server/artistSetlist";
 import { typicalSetLength } from "utils/setlistView";
+import { tourName } from "utils/labels";
 
 const REVALIDATE_SECONDS = 60 * 60;
 // A failed upstream call shouldn't pin an empty page for a whole hour.
@@ -24,6 +25,7 @@ interface Share {
   description: string;
   path: string;
   image: string;
+  imageAlt: string;
 }
 
 interface ResultPageProps {
@@ -51,7 +53,7 @@ const ResultContent = ({ artist }: { artist?: string[] }) => {
       ) : (
         <Result artistQuery={artist} />
       )}
-      {!isLoading && <Footer showCredits className="text-white bg-black" />}
+      {!isLoading && <Footer className="text-white bg-black" />}
     </main>
   );
 };
@@ -116,7 +118,7 @@ export const getStaticProps: GetStaticProps<ResultPageProps> = async ({
     description:
       summary && songs > 0
         ? `The ${songs} songs ${name} play most, from ${summary.totalSetLists} recent concerts${
-            summary.tour ? ` on the ${summary.tour} tour` : ""
+            summary.tour ? ` on the ${tourName(summary.tour)}` : ""
           }. Save them as a Spotify playlist.`
         : `What ${name} play live, from their recent setlists. Save it as a Spotify playlist.`,
     path,
@@ -124,6 +126,7 @@ export const getStaticProps: GetStaticProps<ResultPageProps> = async ({
       artist: artistName,
       ...(artistId ? { id: artistId } : {}),
     })}`,
+    imageAlt: `${name}'s setlist, with how often each song was played`,
   };
 
   const complete =

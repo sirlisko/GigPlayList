@@ -5,16 +5,17 @@ import Favicons from "./Favicons";
 
 export const SITE_URL = "https://gigplaylist.sirlisko.com";
 
-const DEFAULT_TITLE = "GigPlayList - Prepare the playlist for your next gig!";
+const DEFAULT_TITLE = "GigPlayList: know the setlist before the gig";
 const DEFAULT_DESCRIPTION =
-  "GigPlayList curates playlists for upcoming gigs based on setlists and artist data.";
+  "See the songs an artist has been playing live, in running order, and save them as a Spotify playlist.";
 
 interface HeadProps {
   title?: string;
   description?: string;
   path?: string;
-  // An absolute 1200x630 image switches the share card to the large layout.
+  // An absolute URL to a 1200x630 image; defaults to the home card.
   image?: string;
+  imageAlt?: string;
 }
 
 const HeadSection = ({
@@ -22,9 +23,10 @@ const HeadSection = ({
   description = DEFAULT_DESCRIPTION,
   path = "",
   image,
+  imageAlt = "GigPlayList: know the setlist before the lights go down",
 }: HeadProps) => {
   const url = `${SITE_URL}${path}`;
-  const shareImage = image ?? `${SITE_URL}/web-app-manifest-512x512.png`;
+  const shareImage = image ?? `${SITE_URL}/api/og`;
   return (
     <>
       <Head>
@@ -44,18 +46,20 @@ const HeadSection = ({
         <link rel="canonical" href={url} />
         <meta property="og:url" content={url} />
         <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="GigPlayList" />
+        {/* Mirrors `stage` in tailwind.config.js. */}
+        <meta name="theme-color" content="#252320" />
         <meta property="og:description" content={description} />
         <meta property="og:title" content={title} />
         <meta property="og:image" content={shareImage} />
-        <meta property="og:image:width" content={image ? "1200" : "512"} />
-        <meta property="og:image:height" content={image ? "630" : "512"} />
-        <meta
-          name="twitter:card"
-          content={image ? "summary_large_image" : "summary"}
-        />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content={imageAlt} />
+        <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
         <meta name="twitter:image" content={shareImage} />
+        <meta name="twitter:image:alt" content={imageAlt} />
       </Head>
       <Favicons />
     </>

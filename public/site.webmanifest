@@ -1,6 +1,6 @@
 {
-  "name": "GigPlaylist",
-  "short_name": "GigPlaylist",
+  "name": "GigPlayList",
+  "short_name": "GigPlayList",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",
@@ -15,7 +15,7 @@
       "purpose": "maskable"
     }
   ],
-  "theme_color": "#3b82f6",
-  "background_color": "#3b82f6",
+  "theme_color": "#252320",
+  "background_color": "#252320",
   "display": "standalone"
 }

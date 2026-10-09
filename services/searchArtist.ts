@@ -9,6 +9,34 @@ export type SearchResults = {
 
 // MusicBrainz allows ~1 request/second per client and answers 503 beyond that.
 const SEARCH_DEBOUNCE_MS = 400;
+const REQUEST_GAP_MS = 1000;
+const RATE_LIMIT_RETRIES = 4;
+
+class SupersededSearch extends Error {}
+
+let lastRequestAt = 0;
+let latestSearch = 0;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// A slow typist outpaces the debounce, so searches also wait their turn; one
+// still waiting when a newer search starts is dropped rather than spending
+// the slot. MusicBrainz also sheds search load for everyone when busy (503,
+// `retry-after: 0`), so a 503 waits a turn and tries again.
+const searchFetcher = async (url: string): Promise<SearchResults> => {
+  const search = ++latestSearch;
+  for (let attempt = 0; ; attempt++) {
+    await sleep(lastRequestAt + REQUEST_GAP_MS - Date.now());
+    if (search !== latestSearch) throw new SupersededSearch();
+    lastRequestAt = Date.now();
+    const res = await fetch(url);
+    if (res.status === 503 && attempt < RATE_LIMIT_RETRIES) continue;
+    if (!res.ok) {
+      throw new Error(`Artist search failed with status ${res.status}`);
+    }
+    return res.json();
+  }
+};
 
 const useDebouncedValue = <T>(value: T, delay: number) => {
   const [debounced, setDebounced] = useState(value);
@@ -25,7 +53,7 @@ export const useSearchArtistByName = (searchTerm: string | undefined) => {
     debouncedTerm && debouncedTerm.length > 1
       ? `https://musicbrainz.org/ws/2/artist?query=${encodeURIComponent(debouncedTerm)}&fmt=json`
       : null,
-    fetcher<SearchResults>,
+    searchFetcher,
     {
       revalidateOnFocus: false,
       shouldRetryOnError: false,
@@ -35,8 +63,10 @@ export const useSearchArtistByName = (searchTerm: string | undefined) => {
 
   return {
     data,
+    // The term `data` and `isError` describe, which trails the typed one.
+    query: debouncedTerm,
     isLoading,
-    isError: error,
+    isError: !isLoading && error && !(error instanceof SupersededSearch),
   };
 };
 

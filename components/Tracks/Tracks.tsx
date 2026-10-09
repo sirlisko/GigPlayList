@@ -1,7 +1,7 @@
 import React, { ReactNode, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import classNames from "classnames";
-import { Pause, Play, X } from "lucide-react";
+import { ChevronDown, Pause, Play, X } from "lucide-react";
 
 import { Track, Link, ArtistData, Show } from "types";
 import { resolveTrack } from "utils/matchSongs";
@@ -19,6 +19,7 @@ interface TracksProps {
   totalShows: number;
   links?: Link[];
   palette?: ArtistData["palette"];
+  onPlayingChange?: (title: string | null) => void;
 }
 
 const HIGHLIGHTER_ALPHA = 0.6;
@@ -39,6 +40,7 @@ const Tracks = ({
   totalShows,
   links,
   palette,
+  onPlayingChange,
 }: TracksProps) => {
   const [loaded, setLoaded] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<string | null>(null);
@@ -46,6 +48,7 @@ const Tracks = ({
   const [selectedTrack, setSelectedTrack] = useState<SelectedTrack | null>(
     null,
   );
+  const [showExtras, setShowExtras] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -100,6 +103,10 @@ const Tracks = ({
     setTimeout(() => setLoaded(true), 1);
   }, []);
 
+  useEffect(() => {
+    onPlayingChange?.(currentTrack);
+  }, [currentTrack, onPlayingChange]);
+
   const highlighter = readableUnder(
     (palette?.Vibrant?.rgb as Rgb) ?? DEFAULT_HIGHLIGHTER,
     HIGHLIGHTER_ALPHA,
@@ -121,7 +128,7 @@ const Tracks = ({
     return (
       <li
         key={title}
-        className={classNames("flex items-center gap-3", {
+        className={classNames("group flex items-center gap-3", {
           "py-1.5": onSheet,
           "py-2 border-b border-white/10": !onSheet,
         })}
@@ -134,13 +141,20 @@ const Tracks = ({
             {index + 1}
           </span>
         )}
-        <div className="relative min-w-0 flex-1">
+        <div
+          className={classNames(
+            "relative min-w-0 flex-1",
+            onSheet && "font-marker text-lg leading-snug sm:text-xl",
+          )}
+        >
+          {/* Sized in em so a title that wraps keeps one stroke on its
+              first line instead of a block across both. */}
           <span
             aria-hidden="true"
             className={classNames(
               "absolute left-0 transition-[width] duration-1000 ease-out",
               onSheet
-                ? "inset-y-[18%] -skew-x-6 rounded-[3px]"
+                ? "top-[0.24em] h-[0.9em] -skew-x-6 rounded-[3px]"
                 : "-bottom-1 h-0.5 rounded-full bg-white/30",
             )}
             style={{
@@ -150,18 +164,11 @@ const Tracks = ({
               }),
             }}
           />
-          <span
-            className={classNames(
-              "relative",
-              onSheet ? "font-marker text-lg sm:text-xl leading-snug" : "",
-            )}
-          >
-            {title}
-          </span>
+          <span className="relative">{title}</span>
           {cover && (
             <span
               className={classNames(
-                "relative ml-2 text-sm",
+                "relative ml-2 font-sans text-sm",
                 onSheet ? "text-ink/70" : "text-white/65",
               )}
             >
@@ -173,28 +180,18 @@ const Tracks = ({
               usually an encore
             </span>
           )}
-          {!link && (
-            <span
-              className={classNames(
-                "relative ml-2 text-xs",
-                onSheet ? "text-ink/60" : "text-white/55",
-              )}
-            >
-              not on Spotify
-            </span>
-          )}
         </div>
-        {link?.previewUrl && (
+        {link?.previewUrl ? (
           <button
             type="button"
             onClick={() => handlePreview(link.previewUrl, title)}
             aria-pressed={isPlaying}
             aria-label={`${isPlaying ? "Pause" : "Play"} a preview of ${title}`}
             className={classNames(
-              "grid h-8 w-8 shrink-0 place-items-center rounded-full border transition-colors",
+              "reveal-on-hover grid h-8 w-8 shrink-0 place-items-center rounded-full transition-colors",
               onSheet
-                ? "border-ink/30 text-ink hover:bg-ink hover:text-paper"
-                : "border-white/30 hover:bg-white hover:text-black",
+                ? "text-ink/60 hover:bg-ink hover:text-paper"
+                : "text-white/70 hover:bg-white hover:text-black",
               {
                 "bg-ink text-paper": isPlaying && onSheet,
                 "bg-white text-black": isPlaying && !onSheet,
@@ -203,13 +200,26 @@ const Tracks = ({
           >
             {isPlaying ? <Pause size={14} /> : <Play size={14} />}
           </button>
+        ) : (
+          !link && (
+            <span
+              className={classNames(
+                "shrink-0 whitespace-nowrap text-xs",
+                onSheet ? "text-ink/55" : "text-white/55",
+              )}
+            >
+              not on Spotify
+            </span>
+          )
         )}
         <button
           type="button"
           onClick={() => setSelectedTrack({ title, shows, uri: link?.uri })}
           className={classNames(
             "shrink-0 whitespace-nowrap text-sm tabular-nums underline decoration-dotted underline-offset-4",
-            onSheet ? "text-ink/70 hover:text-ink" : "text-white/70",
+            onSheet
+              ? "text-ink/60 decoration-ink/30 hover:text-ink"
+              : "text-white/70 decoration-white/30 hover:text-white",
           )}
           aria-label={`${title}: played at ${count} of ${totalShows} shows. See which.`}
         >
@@ -238,9 +248,29 @@ const Tracks = ({
       {extras.length > 0 && (
         <section className="mt-12">
           {extrasHeading}
-          <ul role="list">
-            {extras.map((track, index) => renderRow(track, index, "stage"))}
-          </ul>
+          <button
+            type="button"
+            aria-expanded={showExtras}
+            aria-controls="extras"
+            onClick={() => setShowExtras(!showExtras)}
+            className="mt-3 inline-flex items-center gap-1.5 text-sm text-white/85 underline underline-offset-4 hover:text-white"
+          >
+            <ChevronDown
+              size={16}
+              aria-hidden="true"
+              className={classNames("transition-transform", {
+                "rotate-180": showExtras,
+              })}
+            />
+            {showExtras
+              ? "Hide them"
+              : `Show the ${extras.length} ${extras.length === 1 ? "song" : "songs"}`}
+          </button>
+          {showExtras && (
+            <ul id="extras" role="list" className="mt-2">
+              {extras.map((track, index) => renderRow(track, index, "stage"))}
+            </ul>
+          )}
         </section>
       )}
 
@@ -296,15 +326,6 @@ const Tracks = ({
               </a>
             )}
           </div>
-        </div>
-      )}
-      {currentTrack && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed bottom-24 left-1/2 z-40 -translate-x-1/2 max-w-[90vw] truncate rounded-full bg-black/85 px-4 py-2 text-sm text-white shadow-lg backdrop-blur"
-        >
-          Now playing a preview of {currentTrack}
         </div>
       )}
     </>

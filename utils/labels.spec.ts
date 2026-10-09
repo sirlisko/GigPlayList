@@ -4,6 +4,7 @@ import {
   calculatePlaylistDuration,
   formatGigDate,
   describeEncores,
+  tourName,
 } from "./labels";
 
 describe("sanitiseDate", () => {
@@ -79,5 +80,15 @@ describe("describeEncores", () => {
 describe("formatGigDate", () => {
   it("should keep a date-only gig on its own day", () => {
     expect(formatGigDate("2026-10-14")).toBe("14 Oct 2026");
+  });
+});
+
+describe("tourName", () => {
+  it("should not repeat tour when the name already has it", () => {
+    expect(tourName("European Tour 2025")).toBe("European Tour 2025");
+  });
+
+  it("should add tour to a bare name", () => {
+    expect(tourName("In Rainbows")).toBe("In Rainbows tour");
   });
 });

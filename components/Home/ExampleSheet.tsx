@@ -33,7 +33,8 @@ const ExampleRow = ({
 );
 
 const ExampleSheet = () => (
-  <figure className="w-full max-w-sm">
+  <figure className="relative isolate w-full max-w-sm">
+    <span aria-hidden="true" className="spotlight" />
     <Sheet title="Tonight" className="md:rotate-[1.2deg]">
       <ol aria-hidden="true">
         {EXAMPLE.map(({ title, share }, index) => (

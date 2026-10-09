@@ -12,12 +12,18 @@ body {
 }
 
 @layer components {
-  /* Pages without an artist yet: the stage before the lights pick a colour. */
+  /* Pages without an artist yet: the bare stage floor before the lights
+     pick a colour. */
   .background {
-    @apply min-h-screen flex flex-col items-center justify-center p-6 text-white bg-stage;
-    background-image: radial-gradient(
-      ellipse 80% 60% at 50% -10%,
-      rgba(120, 130, 255, 0.35),
+    @apply min-h-screen flex flex-col items-center justify-center overflow-x-clip p-6 text-white bg-stage;
+  }
+
+  /* A warm follow spot, centred on whatever it sits behind. */
+  .spotlight {
+    @apply pointer-events-none absolute -inset-x-24 -inset-y-28 -z-10;
+    background: radial-gradient(
+      closest-side,
+      rgba(255, 214, 150, 0.2),
       transparent
     );
   }
@@ -39,6 +45,37 @@ body {
   .tape {
     @apply absolute h-7 w-24 bg-tape/90;
     top: -0.75rem;
+  }
+
+  .checkbox {
+    @apply grid h-4 w-4 shrink-0 cursor-pointer appearance-none place-content-center rounded-[3px] border border-current opacity-80;
+  }
+
+  .checkbox:checked {
+    @apply opacity-100;
+    background: currentColor;
+  }
+
+  .checkbox:checked::after {
+    content: "";
+    @apply h-2 w-1 -translate-y-px rotate-45 border-b-2 border-r-2 border-black;
+  }
+
+  .checkbox:disabled {
+    @apply cursor-not-allowed opacity-40;
+  }
+
+  /* A play button on every row turns the sheet into a table; with a mouse
+     they can wait for the row to be pointed at. Touch keeps them visible. */
+  @media (hover: hover) {
+    .reveal-on-hover:not([aria-pressed="true"]) {
+      opacity: 0;
+    }
+
+    .group:hover .reveal-on-hover,
+    .group:focus-within .reveal-on-hover {
+      opacity: 1;
+    }
   }
 }
 

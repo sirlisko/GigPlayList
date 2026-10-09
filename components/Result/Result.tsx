@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import classNames from "classnames";
 import { ArrowLeft, Frown, TriangleAlert } from "lucide-react";
@@ -19,6 +19,7 @@ import {
   buildSetlistView,
   Order,
   playlistTracks,
+  rotatingExtras,
   typicalSetLength,
 } from "utils/setlistView";
 import {
@@ -26,6 +27,7 @@ import {
   describeEncores,
   formatGigDate,
   sanitiseDate,
+  tourName,
 } from "utils/labels";
 import { BLACK, readableUnder, Rgb, WHITE } from "utils/colors";
 
@@ -39,13 +41,23 @@ const ORDERS: [Order, string][] = [
 ];
 
 // Mirrors `stage` in tailwind.config.js.
-const STAGE: Rgb = [22, 25, 63];
+const STAGE: Rgb = [37, 35, 32];
 
 const monthYear = (date: string | null) =>
   sanitiseDate(date)?.toLocaleDateString("en-gb", {
     month: "short",
     year: "numeric",
   });
+
+const dateRange = (from: string | null, to: string | null) => {
+  const start = monthYear(from);
+  const end = monthYear(to);
+  if (!start || start === end) return end;
+  const [startMonth, startYear] = start.split(" ");
+  return startYear === end?.split(" ")[1]
+    ? `${startMonth} to ${end}`
+    : `${start} to ${end}`;
+};
 
 const Result = ({ artistQuery }: Props) => {
   const {
@@ -115,6 +127,16 @@ const Result = ({ artistQuery }: Props) => {
     document.body.style.background = from;
   }, [from]);
 
+  // The skeleton is the bare stage; start there and let the artist's colour
+  // fade in, instead of swapping it in on the first frame.
+  const [lit, setLit] = useState(false);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setLit(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  const [nowPlaying, setNowPlaying] = useState<string | null>(null);
+
   const filteredTracks = useMemo(
     () => data?.tracks.filter((track) => !hideCovers || !track.cover) ?? [],
     [data?.tracks, hideCovers],
@@ -126,6 +148,8 @@ const Result = ({ artistQuery }: Props) => {
     () => buildSetlistView(filteredTracks, setLength, order),
     [filteredTracks, setLength, order],
   );
+
+  const rotating = rotatingExtras(view);
 
   const playlist = useMemo(
     () => playlistTracks(view, includeExtras),
@@ -165,12 +189,15 @@ const Result = ({ artistQuery }: Props) => {
 
   return (
     <article
-      className="relative min-h-screen text-white"
-      style={{
-        backgroundColor: from,
-        backgroundImage: `linear-gradient(to bottom, ${from} 0, ${from} 24rem, #000 100%)`,
-      }}
+      className="relative min-h-screen text-white transition-colors duration-1000 ease-out"
+      style={{ backgroundColor: lit ? from : `rgb(${STAGE.join(",")})` }}
     >
+      {/* Gradients can't animate, so the fade to black sits on its own layer
+          and only the colour underneath changes. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,transparent_24rem,#000)]"
+      />
       {isArtistiWithTrack && artistData.image ? (
         <div
           aria-hidden="true"
@@ -180,13 +207,10 @@ const Result = ({ artistQuery }: Props) => {
           <img
             src={artistData.image}
             alt=""
-            className="h-full w-full object-cover opacity-40"
-          />
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage: `linear-gradient(to bottom, rgba(${stage.join(",")},0.1), ${from})`,
-            }}
+            className={classNames(
+              "h-full w-full object-cover transition-opacity duration-1000 ease-out [mask-image:linear-gradient(to_bottom,#000,transparent)]",
+              lit ? "opacity-40" : "opacity-0",
+            )}
           />
         </div>
       ) : null}
@@ -207,16 +231,15 @@ const Result = ({ artistQuery }: Props) => {
                 {artistData.name}
               </h1>
               <p className="mt-5 max-w-prose text-white/85">
-                Likely setlist from{" "}
-                <strong>{data.totalSetLists} recent concerts</strong>
+                Built from <strong>{data.totalSetLists} recent shows</strong>
                 {data.tour ? (
                   <>
                     {" "}
-                    on the <strong>{data.tour}</strong> tour
+                    on the <strong>{tourName(data.tour)}</strong>
                   </>
                 ) : null}
-                , {monthYear(data.from)} to {monthYear(data.to)}. A typical show
-                has {setLength} songs.
+                , {dateRange(data.from, data.to)}. A typical night is{" "}
+                {setLength} songs.
                 {encores ? ` ${encores}.` : ""}
               </p>
               {artist?.["life-span"].ended && (
@@ -286,6 +309,7 @@ const Result = ({ artistQuery }: Props) => {
                 <label className="flex cursor-pointer items-center gap-2 text-white/85">
                   <input
                     type="checkbox"
+                    className="checkbox"
                     checked={hideCovers}
                     onChange={(e) => setHideCovers(e.target.checked)}
                   />
@@ -310,21 +334,24 @@ const Result = ({ artistQuery }: Props) => {
                     <label className="flex cursor-pointer items-center gap-2 text-sm">
                       <input
                         type="checkbox"
+                        className="checkbox"
                         checked={includeExtras}
                         onChange={(e) => setIncludeExtras(e.target.checked)}
                       />
                       Add these {view.extras.length} to the playlist
                     </label>
                   </div>
-                  <p className="text-sm text-white/70">
-                    Not part of a typical night, but they turned up at some
-                    shows.
+                  <p className="max-w-prose text-sm text-white/70">
+                    {rotating > 0
+                      ? `The set changes from night to night: ${rotating} of these ${rotating === 1 ? "was" : "were"} played as often as songs on the sheet.`
+                      : "Not part of a typical night, but they turned up at some shows."}
                   </p>
                 </div>
               }
               totalShows={data.totalSetLists}
               links={links}
               palette={artistData?.palette}
+              onPlayingChange={setNowPlaying}
             />
           </>
         ) : isErrorState ? (
@@ -372,16 +399,29 @@ const Result = ({ artistQuery }: Props) => {
         )}
       </div>
 
-      {isArtistiWithTrack && songs.length > 0 ? (
-        <SavePlaylist
-          gig={selectedGig}
-          artistData={artistData}
-          songs={songs}
-          duration={playlistDuration || undefined}
-          unmatchedCount={unmatchedCount}
-          ready={!isLoadingMissingTracks}
-        />
-      ) : null}
+      {/* One sticky stack, so the preview notice rides above the save bar
+          even where the bar stops sticking at the end of the page. */}
+      <div className="sticky bottom-0 z-30">
+        {nowPlaying && (
+          <p
+            role="status"
+            aria-live="polite"
+            className="absolute bottom-full left-1/2 mb-3 max-w-[90vw] -translate-x-1/2 truncate rounded-full bg-black/85 px-4 py-2 text-sm text-white shadow-lg backdrop-blur"
+          >
+            Now playing a preview of {nowPlaying}
+          </p>
+        )}
+        {isArtistiWithTrack && songs.length > 0 ? (
+          <SavePlaylist
+            gig={selectedGig}
+            artistData={artistData}
+            songs={songs}
+            duration={playlistDuration || undefined}
+            unmatchedCount={unmatchedCount}
+            ready={!isLoadingMissingTracks}
+          />
+        ) : null}
+      </div>
     </article>
   );
 };

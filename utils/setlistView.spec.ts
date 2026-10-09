@@ -3,6 +3,7 @@ import { SetList, Track } from "types";
 import {
   buildSetlistView,
   playlistTracks,
+  rotatingExtras,
   typicalSetLength,
 } from "./setlistView";
 
@@ -74,5 +75,19 @@ describe("playlistTracks", () => {
 
   it("should append the extras when asked", () => {
     expect(playlistTracks(view, true)).toHaveLength(5);
+  });
+});
+
+describe("rotatingExtras", () => {
+  it("should count extras played as often as a song on the sheet", () => {
+    expect(rotatingExtras(buildSetlistView(tracks, 1, "running"))).toBe(1);
+  });
+
+  it("should be zero when every extra was played less", () => {
+    expect(rotatingExtras(buildSetlistView(tracks, 4, "running"))).toBe(0);
+  });
+
+  it("should be zero for an empty sheet", () => {
+    expect(rotatingExtras(buildSetlistView([], 0, "running"))).toBe(0);
   });
 });

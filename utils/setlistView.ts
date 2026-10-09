@@ -38,3 +38,12 @@ export const playlistTracks = (
   { main, encore, extras }: SetlistView,
   includeExtras: boolean,
 ) => [...main, ...encore, ...(includeExtras ? extras : [])];
+
+// Off-sheet songs played as often as one on it: where the sheet ends is a
+// coin toss, because the artist rotates songs between nights.
+export const rotatingExtras = ({ main, encore, extras }: SetlistView) => {
+  const counts = [...main, ...encore].map(({ count }) => count);
+  if (counts.length === 0) return 0;
+  const lowest = Math.min(...counts);
+  return extras.filter(({ count }) => count >= lowest).length;
+};
