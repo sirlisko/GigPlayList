@@ -146,6 +146,7 @@ const Search = () => {
           <button
             type="button"
             onClick={clearSearch}
+            aria-label="Clear search"
             className="absolute right-14 top-1/2 transform -translate-y-1/2 text-white opacity-75 hover:opacity-100"
           >
             <CloseIcon size={20} />
@@ -163,7 +164,7 @@ const Search = () => {
         <ul
           id="search-suggestions"
           role="listbox"
-          className="absolute z-10 w-full mt-1 bg-opacity-95 backdrop-blur-md rounded-2xl shadow-lg overflow-hidden border"
+          className="absolute z-10 w-full mt-1 bg-white text-gray-900 rounded-2xl shadow-lg overflow-hidden"
         >
           {suggestions.map((suggestion, index) => (
             <li
